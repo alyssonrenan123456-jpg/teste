@@ -1,3 +1,33 @@
+from flask import Flask, render_template, request, jsonify
+import csv
+import urllib.request
+import io
+from rapidfuzz import process, fuzz
+
+app = Flask(__name__)
+
+# URLs de exportação direta em CSV das duas planilhas
+URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
+
+def ler_csv_online(url):
+    """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
+    try:
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            conteudo = response.read().decode('utf-8')
+            return list(csv.reader(io.StringIO(conteudo)))
+    except Exception as e:
+        print(f"Erro ao ler CSV do Google Sheets: {e}")
+        return None
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 @app.route('/api/buscar', methods=['POST'])
 def buscar():
     dados = request.json or {}
@@ -17,13 +47,11 @@ def buscar():
     resultados = []
 
     if tipo == 'agendamento':
-        # Mapeamento dinâmico de cidades ignorando linhas de título ou em branco
+        # Mapeia todas as cidades válidas na planilha de agendamento
         cidades_map = {}
-        
         for linha in linhas:
             if len(linha) >= 4:
                 col_0 = linha[0].strip()
-                # Verifica se não é o cabeçalho "CIDADE" ou linha vazia
                 if col_0 and col_0.upper() != "CIDADE":
                     cidades_map[col_0] = {
                         "cidade": col_0,
@@ -35,13 +63,13 @@ def buscar():
 
         cidades_disponiveis = list(cidades_map.keys())
         
-        # 1. Busca exata ou parcial (sub-string)
+        # 1. Busca exata ou por trecho do nome
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
         
-        # 2. Se não encontrou por sub-string, usa busca inteligente (fuzzy) para erros de digitação
+        # 2. Tolerância a erros de digitação (Fuzzy Search)
         if not cidades_encontradas and cidades_disponiveis:
             match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
-            if match and match[1] >= 60: # Aceita erros leves de digitação
+            if match and match[1] >= 60:
                 cidades_encontradas = [match[0]]
 
         if not cidades_encontradas:
@@ -51,7 +79,7 @@ def buscar():
             resultados.append(cidades_map[c])
 
     else:
-        # LÓGICA DE PLANTÃO MANTIDA INTACTA
+        # PLANTAO: Identifica filiais e cidades disponíveis
         filiais_disponiveis = list(set([linha[0].strip() for linha in linhas if len(linha) > 0 and linha[0].strip() and linha[0].strip().upper() != "FILIAL"]))
         cidades_disponiveis = list(set([linha[1].strip() for linha in linhas if len(linha) > 1 and linha[1].strip() and linha[1].strip().upper() != "CIDADE"]))
 
@@ -98,6 +126,7 @@ def buscar():
                     tec_domingo and tec_domingo.upper() != "NENHUMA OPÇÃO"
                 )
 
+                # Busca por FILIAL -> Exibe apenas cidades COM técnico escalado
                 if e_busca_filial and coluna_filial in filiais_encontradas:
                     if tem_tecnico:
                         resultados.append({
@@ -110,6 +139,7 @@ def buscar():
                             "jornada_domingo": linha[17].strip() if len(linha) > 17 else "-"
                         })
 
+                # Busca por CIDADE -> Exibe SEMPRE (com ou sem técnico escalado)
                 elif e_busca_cidade and coluna_cidade in cidades_encontradas:
                     resultados.append({
                         "filial": coluna_filial,
@@ -122,3 +152,9 @@ def buscar():
                     })
 
     return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+
+# Exposição explícita para o handler do Serverless na Vercel
+application = app
+
+if __name__ == '__main__':
+    app.run(debug=True)
