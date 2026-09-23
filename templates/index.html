@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Agendamento e Plantão</title>
+    <title>Consulta Integrada - Agendamento e Plantão</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -21,8 +21,9 @@
         .result-card { background: #e8f0fe; border-left: 6px solid #1a73e8; padding: 18px; border-radius: 6px; margin-top: 15px; }
         .result-card p { margin: 6px 0; font-size: 15px; }
         .responsavel { font-size: 17px; color: #1557b0; font-weight: bold; }
-        .status-msg { text-align: center; color: #6c757d; margin-top: 20px; font-size: 15px; }
-        .erro-msg { color: #d93025; background: #fce8e6; padding: 12px; border-radius: 6px; text-align: center; margin-top: 15px; }
+        .sem-plantao { font-size: 16px; color: #d93025; font-weight: normal; }
+        .status-msg { text-align: center; color: #6c757d; margin-top: 20px; font-size: 16px; font-weight: 500; }
+        .erro-msg { color: #d93025; background: #fce8e6; padding: 12px; border-radius: 6px; text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -36,7 +37,7 @@
     </div>
 
     <div>
-        <input type="text" id="buscaInput" placeholder="Digite o nome da cidade..." onkeypress="tratarEnter(event)">
+        <input type="text" id="buscaInput" placeholder="Digite o nome da cidade (Ex: Joaçaba, Lages, Caçador)..." onkeypress="tratarEnter(event)">
         <button class="btn-search" onclick="realizarBusca()">Consultar ao Vivo</button>
     </div>
 
@@ -53,9 +54,9 @@
         
         const input = document.getElementById('buscaInput');
         if (tipo === 'agendamento') {
-            input.placeholder = "Digite o nome da cidade (Ex: Joaçaba, Lages, Caçador)...";
+            input.placeholder = "Digite a Cidade (Ex: Joaçaba, Lages, Caçador)...";
         } else {
-            input.placeholder = "Digite a Filial (Ex: MCA, LGS, 01, 03) ou Cidade (Ex: Fraiburgo)...";
+            input.placeholder = "Digite a Filial (Ex: MCA, 01, LGS) ou Cidade (Ex: Fraiburgo)...";
         }
         
         document.getElementById('resultadosContainer').innerHTML = '';
@@ -99,16 +100,18 @@
                     container.innerHTML = resposta.dados.map(item => `
                         <div class="result-card">
                             <p><strong>Filial:</strong> ${item.filial} | <strong>Cidade:</strong> ${item.cidade}</p>
-                            <p class="responsavel">📅 Sábado: ${item.tecnico_sabado} ${item.jornada_sabado !== '-' ? '(' + item.jornada_sabado + ')' : ''}</p>
-                            <p class="responsavel">📅 Domingo: ${item.tecnico_domingo} ${item.jornada_domingo !== '-' ? '(' + item.jornada_domingo + ')' : ''}</p>
+                            <p class="${item.tecnico_sabado.includes('Nenhum') ? 'sem-plantao' : 'responsavel'}">
+                                📅 Sábado: ${item.tecnico_sabado} ${item.jornada_sabado !== '-' ? '(' + item.jornada_sabado + ')' : ''}
+                            </p>
+                            <p class="${item.tecnico_domingo.includes('Nenhum') ? 'sem-plantao' : 'responsavel'}">
+                                📅 Domingo: ${item.tecnico_domingo} ${item.jornada_domingo !== '-' ? '(' + item.jornada_domingo + ')' : ''}
+                            </p>
                         </div>
                     `).join('');
                 }
             } else if (resposta.sucesso && resposta.dados.length === 0) {
-                const msg = tipoAtual === 'plantao' 
-                    ? `Nenhum técnico de plantão escalado encontrado para "${termo}".` 
-                    : `Nenhum resultado encontrado para "${termo}".`;
-                container.innerHTML = `<p class="status-msg">${msg}</p>`;
+                const msg = resposta.mensagem || "Nenhum resultado encontrado.";
+                container.innerHTML = `<p class="status-msg">⚠️ <strong>${msg}</strong></p>`;
             } else {
                 container.innerHTML = `<div class="erro-msg">${resposta.erro}</div>`;
             }
