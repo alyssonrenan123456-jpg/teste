@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consulta - Agendamento e Plantão</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 750px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { margin-top: 0; color: #1a73e8; text-align: center; }
+        
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-size: 16px; font-weight: bold; color: #666; cursor: pointer; text-align: center; }
+        .tab-btn.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
+        
+        input[type="text"] { width: 100%; padding: 12px 15px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        button.btn-search { width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button.btn-search:hover { background: #1557b0; }
+        
+        .result-card { background: #e8f0fe; border-left: 6px solid #1a73e8; padding: 18px; border-radius: 6px; margin-top: 15px; }
+        .result-card p { margin: 6px 0; font-size: 15px; }
+        .responsavel { font-size: 18px; color: #1557b0; font-weight: bold; }
+        .status-msg { text-align: center; color: #6c757d; margin-top: 20px; font-size: 15px; }
+        .erro-msg { color: #d93025; background: #fce8e6; padding: 12px; border-radius: 6px; text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔍 Consulta Integrada</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="btnAgendamento" onclick="setTipo('agendamento')">Agendamentos</button>
+        <button class="tab-btn" id="btnPlantao" onclick="setTipo('plantao')">Técnicos de Plantão</button>
+    </div>
+
+    <div>
+        <input type="text" id="buscaInput" placeholder="Digite o nome da cidade (Ex: Joaçaba, Lages, Caçador)..." onkeypress="tratarEnter(event)">
+        <button class="btn-search" onclick="realizarBusca()">Consultar ao Vivo</button>
+    </div>
+
+    <div id="resultadosContainer"></div>
+</div>
+
+<script>
+    let tipoAtual = 'agendamento';
+
+    function setTipo(tipo) {
+        tipoAtual = tipo;
+        document.getElementById('btnAgendamento').classList.toggle('active', tipo === 'agendamento');
+        document.getElementById('btnPlantao').classList.toggle('active', tipo === 'plantao');
+        document.getElementById('resultadosContainer').innerHTML = '';
+    }
+
+    function tratarEnter(e) {
+        if (e.key === 'Enter') realizarBusca();
+    }
+
+    async function realizarBusca() {
+        const termo = document.getElementById('buscaInput').value.trim();
+        const container = document.getElementById('resultadosContainer');
+
+        if (!termo) {
+            container.innerHTML = '<div class="status-msg">Digite o nome de uma cidade para consultar.</div>';
+            return;
+        }
+
+        container.innerHTML = '<p class="status-msg">⏳ Buscando na planilha do Google Sheets em tempo real...</p>';
+
+        try {
+            const response = await fetch('/api/buscar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ termo: termo, tipo: tipoAtual })
+            });
+
+            const resposta = await response.json();
+
+            if (resposta.sucesso && resposta.dados.length > 0) {
+                if (tipoAtual === 'agendamento') {
+                    container.innerHTML = resposta.dados.map(item => `
+                        <div class="result-card">
+                            <p><strong>Cidade:</strong> ${item.cidade}</p>
+                            <p class="responsavel">👤 Agenda para esta cidade: ${item.responsavel}</p>
+                            <p><strong>Regional:</strong> ${item.regional}</p>
+                            <p><strong>Conectados:</strong> ${item.conectados} | <strong>FTTH:</strong> ${item.ttth}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = resposta.dados.map(item => `
+                        <div class="result-card">
+                            <p><strong>Filial/Cidade:</strong> ${item.filial} - ${item.cidade}</p>
+                            <p class="responsavel">📅 Sábado: ${item.tecnico_sabado} (${item.jornada_sabado})</p>
+                            <p class="responsavel">📅 Domingo: ${item.tecnico_domingo} (${item.jornada_domingo})</p>
+                            <p><strong>Status Sobreaviso:</strong> ${item.status}</p>
+                        </div>
+                    `).join('');
+                }
+            } else if (resposta.sucesso && resposta.dados.length === 0) {
+                container.innerHTML = `<p class="status-msg">Nenhum resultado encontrado para "${termo}".</p>`;
+            } else {
+                container.innerHTML = `<div class="erro-msg">${resposta.erro}</div>`;
+            }
+        } catch (err) {
+            container.innerHTML = '<div class="erro-msg">Erro ao conectar com o servidor.</div>';
+        }
+    }
+</script>
+
+</body>
+</html>
