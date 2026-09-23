@@ -5,7 +5,7 @@ import io
 
 app = Flask(__name__)
 
-# URLs de exportação direta CSV configuradas com os seus IDs e GIDs das planilhas
+# URLs de exportação direta CSV do Google Sheets
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
@@ -34,7 +34,7 @@ def buscar():
     tipo = dados.get('tipo', 'agendamento') # 'agendamento' ou 'plantao'
 
     if not termo:
-        return jsonify({"sucesso": False, "erro": "Informe uma cidade para consultar."}), 400
+        return jsonify({"sucesso": False, "erro": "Informe o termo para consultar."}), 400
 
     url = URL_AGENDAMENTOS if tipo == 'agendamento' else URL_PLANTAO
     linhas = ler_csv_online(url)
@@ -44,14 +44,12 @@ def buscar():
 
     resultados = []
 
-    # Procura pela cidade no arquivo
+    # Procura pela cidade (agendamento) ou por filial (plantão)
     for linha in linhas[1:]:
         if len(linha) > 1:
-            # Na planilha de agendamento a cidade fica na coluna 0 ou 1, na de sobreaviso fica na coluna 1
-            coluna_cidade = linha[0].strip() if tipo == 'agendamento' else (linha[1].strip() if len(linha) > 1 else "")
-            
-            if termo in coluna_cidade.lower():
-                if tipo == 'agendamento':
+            if tipo == 'agendamento':
+                coluna_busca = linha[0].strip() # Cidade no agendamento
+                if termo in coluna_busca.lower():
                     resultados.append({
                         "cidade": linha[0].strip(),
                         "conectados": linha[1].strip() if len(linha) > 1 else "-",
@@ -59,8 +57,12 @@ def buscar():
                         "responsavel": linha[3].strip() if len(linha) > 3 else "Não informado",
                         "regional": linha[4].strip() if len(linha) > 4 else "-"
                     })
-                else:
-                    # Estrutura para plantão / sobreaviso
+            else:
+                coluna_filial = linha[0].strip() # Filial na planilha de plantão
+                coluna_cidade = linha[1].strip() if len(linha) > 1 else "" # Cidade também mantida como opção secundária
+                
+                # Permite pesquisar tanto pela sigla/nome da Filial quanto pela Cidade
+                if termo in coluna_filial.lower() or termo in coluna_cidade.lower():
                     resultados.append({
                         "filial": linha[0].strip() if len(linha) > 0 else "-",
                         "cidade": linha[1].strip() if len(linha) > 1 else "-",
