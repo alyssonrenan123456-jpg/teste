@@ -3,123 +3,465 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta Integrada - Agendamento e Plantão</title>
+    <title>Consulta Integrada - Agendamento & Plantão</title>
+    <!-- Fonte Inter Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 750px; margin: 30px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h1 { margin-top: 0; color: #1a73e8; text-align: center; }
-        
-        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-size: 16px; font-weight: bold; color: #666; cursor: pointer; text-align: center; }
-        .tab-btn.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
-        
-        input[type="text"] { width: 100%; padding: 12px 15px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
-        button.btn-search { width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        button.btn-search:hover { background: #1557b0; }
-        
-        .result-card { background: #e8f0fe; border-left: 6px solid #1a73e8; padding: 18px; border-radius: 6px; margin-top: 15px; }
-        .result-card p { margin: 6px 0; font-size: 15px; }
-        .responsavel { font-size: 17px; color: #1557b0; font-weight: bold; }
-        .sem-plantao { font-size: 16px; color: #d93025; font-weight: normal; }
-        .status-msg { text-align: center; color: #6c757d; margin-top: 20px; font-size: 16px; font-weight: 500; }
-        .erro-msg { color: #d93025; background: #fce8e6; padding: 12px; border-radius: 6px; text-align: center; margin-top: 15px; font-weight: bold; }
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --accent-cyan: #06b6d4;
+            --danger-color: #f43f5e;
+            --success-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Aura Background Animations */
+        .aura-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .aura-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.45;
+            animation: pulseAura 12s infinite alternate ease-in-out;
+        }
+
+        .aura-1 {
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+        }
+
+        .aura-2 {
+            bottom: -15%;
+            right: -10%;
+            width: 55vw;
+            height: 55vw;
+            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+            animation-delay: -6s;
+        }
+
+        .aura-3 {
+            top: 40%;
+            left: 30%;
+            width: 35vw;
+            height: 35vw;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+            animation-delay: -3s;
+        }
+
+        @keyframes pulseAura {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(40px, -30px) scale(1.15); }
+            100% { transform: translate(-20px, 40px) scale(0.95); }
+        }
+
+        /* Glassmorphism Main Container */
+        .glass-container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .title-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .title-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* Tab Switcher */
+        .tabs-wrapper {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+            border-radius: 14px;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+        }
+
+        /* Search Input & Button */
+        .search-box {
+            position: relative;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper input::placeholder {
+            color: #6b7280;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .btn-search {
+            padding: 0 24px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-search:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.35);
+        }
+
+        /* Results Display */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .result-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .result-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            background: rgba(30, 41, 59, 0.6);
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .badge-regional {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            font-weight: 500;
+        }
+
+        .responsavel-box {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, transparent 100%);
+            border-left: 3px solid var(--accent-primary);
+            padding: 12px 16px;
+            border-radius: 0 10px 10px 0;
+            margin: 12px 0;
+        }
+
+        .responsavel-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .responsavel-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e0e7ff;
+            margin-top: 2px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .info-item {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .info-item strong {
+            color: var(--text-primary);
+        }
+
+        .plantao-day {
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.4);
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        .plantao-day.ativo {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .plantao-day.inativo {
+            border-left: 3px solid var(--danger-color);
+            color: var(--text-secondary);
+        }
+
+        .status-msg {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .erro-msg {
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            color: #fca5a5;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🔍 Consulta Integrada</h1>
-
-    <div class="tabs">
-        <button class="tab-btn active" id="btnAgendamento" onclick="setTipo('agendamento')">Agendamentos (Por Cidade)</button>
-        <button class="tab-btn" id="btnPlantao" onclick="setTipo('plantao')">Técnicos de Plantão (Filial ou Cidade)</button>
+    <!-- Aura Blur Animations -->
+    <div class="aura-container">
+        <div class="aura-blob aura-1"></div>
+        <div class="aura-blob aura-2"></div>
+        <div class="aura-blob aura-3"></div>
     </div>
 
-    <div>
-        <input type="text" id="buscaInput" placeholder="Digite a Cidade (Ex: Joaçaba, Lages, Caçador)..." onkeypress="tratarEnter(event)">
-        <button class="btn-search" onclick="realizarBusca()">Consultar ao Vivo</button>
+    <!-- Main Glass Container -->
+    <div class="glass-container">
+        <div class="title-header">
+            <h1>✦ Consulta Integrada</h1>
+            <p>Agendamentos e Escala de Plantão em tempo real</p>
+        </div>
+
+        <div class="tabs-wrapper">
+            <button class="tab-btn active" id="btnAgendamento" onclick="setTipo('agendamento')">Agendamentos</button>
+            <button class="tab-btn" id="btnPlantao" onclick="setTipo('plantao')">Técnicos de Plantão</button>
+        </div>
+
+        <div class="search-box">
+            <div class="input-wrapper">
+                <input type="text" id="buscaInput" placeholder="Digite o nome da Cidade..." onkeypress="tratarEnter(event)" autocomplete="off">
+            </div>
+            <button class="btn-search" onclick="realizarBusca()">Buscar</button>
+        </div>
+
+        <div id="resultadosContainer" class="results-container"></div>
     </div>
 
-    <div id="resultadosContainer"></div>
-</div>
+    <script>
+        let tipoAtual = 'agendamento';
 
-<script>
-    let tipoAtual = 'agendamento';
-
-    function setTipo(tipo) {
-        tipoAtual = tipo;
-        document.getElementById('btnAgendamento').classList.toggle('active', tipo === 'agendamento');
-        document.getElementById('btnPlantao').classList.toggle('active', tipo === 'plantao');
-        
-        const input = document.getElementById('buscaInput');
-        if (tipo === 'agendamento') {
-            input.placeholder = "Digite a Cidade (Ex: Joaçaba, Lages, Caçador)...";
-        } else {
-            input.placeholder = "Digite a Filial (Ex: MCA, 01, LGS) ou Cidade (Ex: Fraiburgo)...";
-        }
-        
-        document.getElementById('resultadosContainer').innerHTML = '';
-    }
-
-    function tratarEnter(e) {
-        if (e.key === 'Enter') realizarBusca();
-    }
-
-    async function realizarBusca() {
-        const termo = document.getElementById('buscaInput').value.trim();
-        const container = document.getElementById('resultadosContainer');
-
-        if (!termo) {
-            container.innerHTML = '<div class="status-msg">Por favor, digite um termo para buscar.</div>';
-            return;
-        }
-
-        container.innerHTML = '<p class="status-msg">⏳ Buscando na planilha do Google Sheets em tempo real...</p>';
-
-        try {
-            const response = await fetch('/api/buscar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ termo: termo, tipo: tipoAtual })
-            });
-
-            const resposta = await response.json();
-
-            if (resposta.sucesso && resposta.dados.length > 0) {
-                if (tipoAtual === 'agendamento') {
-                    container.innerHTML = resposta.dados.map(item => `
-                        <div class="result-card">
-                            <p><strong>Cidade:</strong> ${item.cidade}</p>
-                            <p class="responsavel">👤 Agenda para esta cidade: ${item.responsavel}</p>
-                            <p><strong>Regional:</strong> ${item.regional}</p>
-                            <p><strong>Conectados:</strong> ${item.conectados} | <strong>FTTH:</strong> ${item.ttth}</p>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = resposta.dados.map(item => `
-                        <div class="result-card">
-                            <p><strong>Filial:</strong> ${item.filial} | <strong>Cidade:</strong> ${item.cidade}</p>
-                            <p class="${item.tecnico_sabado.includes('Nenhum') ? 'sem-plantao' : 'responsavel'}">
-                                📅 Sábado: ${item.tecnico_sabado} ${item.jornada_sabado !== '-' ? '(' + item.jornada_sabado + ')' : ''}
-                            </p>
-                            <p class="${item.tecnico_domingo.includes('Nenhum') ? 'sem-plantao' : 'responsavel'}">
-                                📅 Domingo: ${item.tecnico_domingo} ${item.jornada_domingo !== '-' ? '(' + item.jornada_domingo + ')' : ''}
-                            </p>
-                        </div>
-                    `).join('');
-                }
-            } else if (resposta.sucesso && resposta.dados.length === 0) {
-                const msg = resposta.mensagem || "Nenhum resultado encontrado.";
-                container.innerHTML = `<p class="status-msg">⚠️ <strong>${msg}</strong></p>`;
+        function setTipo(tipo) {
+            tipoAtual = tipo;
+            document.getElementById('btnAgendamento').classList.toggle('active', tipo === 'agendamento');
+            document.getElementById('btnPlantao').classList.toggle('active', tipo === 'plantao');
+            
+            const input = document.getElementById('buscaInput');
+            if (tipo === 'agendamento') {
+                input.placeholder = "Digite a Cidade (Ex: Joaçaba, Lages, Caçador)...";
             } else {
-                container.innerHTML = `<div class="erro-msg">${resposta.erro}</div>`;
+                input.placeholder = "Digite a Filial (Ex: MCA, 01) ou Cidade (Ex: Fraiburgo)...";
             }
-        } catch (err) {
-            container.innerHTML = '<div class="erro-msg">Erro ao conectar com o servidor.</div>';
+            
+            document.getElementById('resultadosContainer').innerHTML = '';
         }
-    }
-</script>
 
-</body>
-</html>
+        function tratarEnter(e) {
+            if (e.key === 'Enter') realizarBusca();
+        }
+
+        async function realizarBusca() {
+            const termo = document.getElementById('buscaInput').value.trim();
+            const container = document.getElementById('resultadosContainer');
+
+            if (!termo) {
+                container.innerHTML = '<div class="status-msg">Por favor, digite um termo para realizar a consulta.</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="status-msg">
+                    <div class="spinner"></div>
+                    Sincronizando com Google Sheets...
+                </div>`;
+
+            try {
+                const response = await fetch('/api/buscar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ termo: termo, tipo: tipoAtual })
+                });
+
+                const resposta = await response.json();
+
+                if (resposta.sucesso && resposta.dados.length > 0) {
+                    if (tipoAtual === 'agendamento') {
+                        container.innerHTML = resposta.dados.map(item => `
+                            <div class="result-card">
+                                <div class="card-header">
+                                    <span>📍 ${item.cidade}</span>
+                                    <span class="badge-regional">${item.regional}</span>
+                                </div>
+                                <div class="responsavel-box">
+                                    <div class="responsavel-label">Responsável pelo Agendamento</div>
+                                    <div class="responsavel-name">👤 ${item.responsavel}</div>
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-item">Conectados: <strong>${item.conectados}</strong></div>
+                                    <div class="info-item">FTTH: <strong>${item.ttth}</strong></div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = resposta.dados.map(item => `
+                            <div class="result-card">
+                                <div class="card-header">
+                                    <span>🏢 Filial: ${item.filial}</span>
+                                    <span class="badge-regional">📍 ${item.cidade}</span>
+                                </div>
+                                
+                                <div class="plantao-day ${item.tecnico_sabado.includes('Nenhum') ? 'inativo' : 'ativo'}">
+                                    <strong>📅 Sábado:</strong> ${item.tecnico_sabado} 
+                                    ${item.jornada_sabado !== '-' ? `<span style="opacity: 0.75; font-size: 12px;">(${item.jornada_sabado})</span>` : ''}
+                                </div>
+
+                                <div class="plantao-day ${item.tecnico_domingo.includes('Nenhum') ? 
