@@ -6,7 +6,7 @@ from rapidfuzz import process, fuzz
 
 app = Flask(__name__)
 
-# URLs de exportação direta em CSV das duas planilhas
+# URLs de exportação direta em CSV das duas planilhas do Google Sheets
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
@@ -47,26 +47,39 @@ def buscar():
     resultados = []
 
     if tipo == 'agendamento':
-        # Mapeia todas as cidades válidas na planilha de agendamento
         cidades_map = {}
         for linha in linhas:
-            if len(linha) >= 4:
-                col_0 = linha[0].strip()
-                if col_0 and col_0.upper() != "CIDADE":
-                    cidades_map[col_0] = {
-                        "cidade": col_0,
-                        "conectados": linha[1].strip() if len(linha) > 1 else "-",
-                        "ttth": linha[2].strip() if len(linha) > 2 else "-",
-                        "responsavel": linha[3].strip() if len(linha) > 3 else "Não informado",
-                        "regional": linha[4].strip() if len(linha) > 4 else "-"
-                    }
+            # Varre as colunas tratando o deslocamento característico da planilha de agendamento
+            for idx, col_val in enumerate(linha):
+                nome_col = col_val.strip()
+                # Localiza onde está o nome da cidade válido (descartando cabeçalho 'CIDADE', traços ou vazios)
+                if nome_col and nome_col.upper() not in ["CIDADE", ":-:", "RESPONSÁVEL", "TOTAL CONECTADOS", "|"]:
+                    # Garante que a linha possui colunas suficientes
+                    cidade_nome = nome_col
+                    # Se a cidade foi encontrada na coluna idx, extrai as colunas seguintes
+                    if idx + 3 < len(linha):
+                        conectados = linha[idx + 1].strip() if idx + 1 < len(linha) else "-"
+                        ttth = linha[idx + 2].strip() if idx + 2 < len(linha) else "-"
+                        responsavel = linha[idx + 3].strip() if idx + 3 < len(linha) else "Não informado"
+                        regional = linha[idx + 4].strip() if idx + 4 < len(linha) else "-"
+                        
+                        # Evita salvar entradas inválidas
+                        if responsavel.upper() != "RESPONŚAVEL" and responsavel.upper() != "RESPONSÁVEL":
+                            cidades_map[cidade_nome] = {
+                                "cidade": cidade_nome,
+                                "conectados": conectados,
+                                "ttth": ttth,
+                                "responsavel": responsavel,
+                                "regional": regional
+                            }
+                    break
 
         cidades_disponiveis = list(cidades_map.keys())
         
-        # 1. Busca exata ou por trecho do nome
+        # 1. Busca por palavra contida
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
         
-        # 2. Tolerância a erros de digitação (Fuzzy Search)
+        # 2. Se não encontrou de primeira, usa tolerância a erro de digitação
         if not cidades_encontradas and cidades_disponiveis:
             match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
             if match and match[1] >= 60:
@@ -79,9 +92,9 @@ def buscar():
             resultados.append(cidades_map[c])
 
     else:
-        # PLANTAO: Identifica filiais e cidades disponíveis
-        filiais_disponiveis = list(set([linha[0].strip() for linha in linhas if len(linha) > 0 and linha[0].strip() and linha[0].strip().upper() != "FILIAL"]))
-        cidades_disponiveis = list(set([linha[1].strip() for linha in linhas if len(linha) > 1 and linha[1].strip() and linha[1].strip().upper() != "CIDADE"]))
+        # LÓGICA DE PLANTÃO (INALTERADA E FUNCIONAL)
+        filiais_disponiveis = list(set([linha[0].strip() for linha in linhas if len(linha) > 0 and linha[0].strip() and linha[0].strip().upper() not in ["FILIAL", ":-:"]]))
+        cidades_disponiveis = list(set([linha[1].strip() for linha in linhas if len(linha) > 1 and linha[1].strip() and linha[1].strip().upper() not in ["CIDADE", ":-:"]]))
 
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
@@ -126,7 +139,6 @@ def buscar():
                     tec_domingo and tec_domingo.upper() != "NENHUMA OPÇÃO"
                 )
 
-                # Busca por FILIAL -> Exibe apenas cidades COM técnico escalado
                 if e_busca_filial and coluna_filial in filiais_encontradas:
                     if tem_tecnico:
                         resultados.append({
@@ -139,7 +151,6 @@ def buscar():
                             "jornada_domingo": linha[17].strip() if len(linha) > 17 else "-"
                         })
 
-                # Busca por CIDADE -> Exibe SEMPRE (com ou sem técnico escalado)
                 elif e_busca_cidade and coluna_cidade in cidades_encontradas:
                     resultados.append({
                         "filial": coluna_filial,
@@ -153,7 +164,7 @@ def buscar():
 
     return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
-# Exposição explícita para o handler do Serverless na Vercel
+# Exposição obrigatória para o manipulador serverless da Vercel
 application = app
 
 if __name__ == '__main__':
