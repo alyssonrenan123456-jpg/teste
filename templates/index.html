@@ -31,12 +31,12 @@
     <h1>🔍 Consulta Integrada</h1>
 
     <div class="tabs">
-        <button class="tab-btn active" id="btnAgendamento" onclick="setTipo('agendamento')">Agendamentos</button>
-        <button class="tab-btn" id="btnPlantao" onclick="setTipo('plantao')">Técnicos de Plantão</button>
+        <button class="tab-btn active" id="btnAgendamento" onclick="setTipo('agendamento')">Agendamentos (Por Cidade)</button>
+        <button class="tab-btn" id="btnPlantao" onclick="setTipo('plantao')">Técnicos de Plantão (Por Filial)</button>
     </div>
 
     <div>
-        <input type="text" id="buscaInput" placeholder="Digite o nome da cidade (Ex: Joaçaba, Lages, Caçador)..." onkeypress="tratarEnter(event)">
+        <input type="text" id="buscaInput" placeholder="Digite o nome da cidade..." onkeypress="tratarEnter(event)">
         <button class="btn-search" onclick="realizarBusca()">Consultar ao Vivo</button>
     </div>
 
@@ -50,6 +50,14 @@
         tipoAtual = tipo;
         document.getElementById('btnAgendamento').classList.toggle('active', tipo === 'agendamento');
         document.getElementById('btnPlantao').classList.toggle('active', tipo === 'plantao');
+        
+        const input = document.getElementById('buscaInput');
+        if (tipo === 'agendamento') {
+            input.placeholder = "Digite a cidade (Ex: Joaçaba, Lages, Caçador)...";
+        } else {
+            input.placeholder = "Digite a filial ou cidade (Ex: MCA, 01, LGS, JBA)...";
+        }
+        
         document.getElementById('resultadosContainer').innerHTML = '';
     }
 
@@ -62,7 +70,7 @@
         const container = document.getElementById('resultadosContainer');
 
         if (!termo) {
-            container.innerHTML = '<div class="status-msg">Digite o nome de uma cidade para consultar.</div>';
+            container.innerHTML = '<div class="status-msg">Por favor, digite um termo para buscar.</div>';
             return;
         }
 
@@ -90,7 +98,7 @@
                 } else {
                     container.innerHTML = resposta.dados.map(item => `
                         <div class="result-card">
-                            <p><strong>Filial/Cidade:</strong> ${item.filial} - ${item.cidade}</p>
+                            <p><strong>Filial:</strong> ${item.filial} | <strong>Cidade:</strong> ${item.cidade}</p>
                             <p class="responsavel">📅 Sábado: ${item.tecnico_sabado} (${item.jornada_sabado})</p>
                             <p class="responsavel">📅 Domingo: ${item.tecnico_domingo} (${item.jornada_domingo})</p>
                             <p><strong>Status Sobreaviso:</strong> ${item.status}</p>
