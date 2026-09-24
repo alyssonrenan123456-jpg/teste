@@ -100,7 +100,7 @@ def ler_csv_online(url):
 
 
 def extrair_dados_plantao_linha(linha):
-    """Extrai os dados estruturados de uma linha de plantão"""
+    """Extrai os dados estruturados para pesquisas normais por filial/cidade"""
     coluna_filial = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
@@ -156,6 +156,48 @@ def extrair_dados_plantao_linha(linha):
     }
 
 
+def extrair_dados_matriz_geral(linha):
+    """Extrai os dados para o Resumo com colunas de Sábado e Domingo (Sim / Não)"""
+    coluna_filial = linha[0].strip() if len(linha) > 0 else ""
+    coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
+    status_bruto = linha[3].strip() if len(linha) > 3 else "-"
+
+    tec_sabado = "Nenhum técnico escalado"
+    tec_domingo = "Nenhum técnico escalado"
+
+    tecnicos_encontrados = []
+    for i in range(4, len(linha)):
+        val = linha[i].strip()
+        val_upper = val.upper()
+        if "PRÓPRIOS" in val_upper or "TERCEIRIZADOS" in val_upper:
+            tecnicos_encontrados.append(val)
+
+    if len(tecnicos_encontrados) > 0:
+        tec_sabado = tecnicos_encontrados[0]
+        if len(tecnicos_encontrados) > 1:
+            tec_domingo = tecnicos_encontrados[1]
+
+    tem_tec_sabado = (
+        tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"]
+        and tec_sabado != ""
+    )
+    tem_tec_domingo = (
+        tec_domingo not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"]
+        and tec_domingo != ""
+    )
+
+    # Define Sim ou Não individualmente para cada dia baseado na regra geral e presença de técnico
+    status_sabado = "Sim" if (status_bruto.upper() == "SIM" and tem_tec_sabado) else "Não"
+    status_domingo = "Sim" if (status_bruto.upper() == "SIM" and tem_tec_domingo) else "Não"
+
+    return {
+        "filial": coluna_filial,
+        "cidade": coluna_cidade,
+        "status_sabado": status_sabado,
+        "status_domingo": status_domingo,
+    }
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -163,7 +205,6 @@ def index():
 
 @app.route("/api/avisos", methods=["GET"])
 def buscar_avisos():
-    """Busca os dados do quadro de avisos (problemas massivos)"""
     try:
         req = urllib.request.Request(URL_AVISOS, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=10) as response:
@@ -302,7 +343,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Clique no Resumo (Matriz Geral): exibe TODAS as cidades em formato de cards igual antes
+        # Clique no Resumo (Matriz Geral): Retorna TODAS as cidades com Sim/Não para Sábado e Domingo
         if termo_lower == "todas_as_cidades":
             for linha in linhas:
                 if len(linha) > 1:
@@ -315,7 +356,7 @@ def buscar():
                         "SEGUNDA-FEIRA",
                         "TÉCNICO RESPONSÁVEL",
                     ]:
-                        resultados.append(extrair_dados_plantao_linha(linha))
+                        resultados.append(extrair_dados_matriz_geral(linha))
             return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
         filiais_encontradas = [
