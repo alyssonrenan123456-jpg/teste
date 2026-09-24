@@ -100,7 +100,7 @@ def ler_csv_online(url):
 
 
 def extrair_dados_plantao_linha(linha):
-    """Extrai com segurança os dados de uma linha da planilha de plantão"""
+    """Extrai os dados de uma linha para buscas por filial ou cidade específica"""
     coluna_filial = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
@@ -130,7 +130,6 @@ def extrair_dados_plantao_linha(linha):
         if len(tecnicos_encontrados) > 1:
             tec_domingo, jornada_domingo = tecnicos_encontrados[1]
 
-    # Validação rigorosa: Tem técnico real escalado?
     tem_tec_sabado = (
         tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"]
         and tec_sabado != ""
@@ -140,6 +139,64 @@ def extrair_dados_plantao_linha(linha):
         and tec_domingo != ""
     )
 
+    tem_sobreaviso_real = (status_bruto.upper() == "SIM") and (
+        tem_tec_sabado or tem_tec_domingo
+    )
+    status_final = "SIM" if tem_sobreaviso_real else "NÃO"
+
+    return {
+        "filial": coluna_filial,
+        "cidade": coluna_cidade,
+        "status": status_final,
+        "tecnico_sabado": tec_sabado,
+        "jornada_sabado": jornada_sabado,
+        "tecnico_domingo": tec_domingo,
+        "jornada_domingo": jornada_domingo,
+        "tem_tecnico_real": tem_sobreaviso_real,
+    }
+
+
+def extrair_dados_matriz_geral(linha):
+    """Extrai todas as cidades para o Resumo/Matriz Geral com status Sim/Não"""
+    coluna_filial = linha[0].strip() if len(linha) > 0 else ""
+    coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
+    status_bruto = linha[3].strip() if len(linha) > 3 else "-"
+
+    tec_sabado = "Nenhum técnico escalado"
+    jornada_sabado = "-"
+    tec_domingo = "Nenhum técnico escalado"
+    jornada_domingo = "-"
+
+    tecnicos_encontrados = []
+    for i in range(4, len(linha)):
+        val = linha[i].strip()
+        val_upper = val.upper()
+        if "PRÓPRIOS" in val_upper or "TERCEIRIZADOS" in val_upper:
+            jornada = "-"
+            if i + 1 < len(linha) and (
+                ":" in linha[i + 1]
+                or "h" in linha[i + 1].lower()
+                or "as" in linha[i + 1].lower()
+                or "-" in linha[i + 1]
+            ):
+                jornada = linha[i + 1].strip()
+            tecnicos_encontrados.append((val, jornada))
+
+    if len(tecnicos_encontrados) > 0:
+        tec_sabado, jornada_sabado = tecnicos_encontrados[0]
+        if len(tecnicos_encontrados) > 1:
+            tec_domingo, jornada_domingo = tecnicos_encontrados[1]
+
+    tem_tec_sabado = (
+        tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"]
+        and tec_sabado != ""
+    )
+    tem_tec_domingo = (
+        tec_domingo not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"]
+        and tec_domingo != ""
+    )
+
+    # Para a matriz geral, avalia se tem o Sim geral da linha e técnico
     tem_sobreaviso_real = (status_bruto.upper() == "SIM") and (
         tem_tec_sabado or tem_tec_domingo
     )
@@ -303,7 +360,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Resumo total (modal) traz absolutamente todas as cidades com ou sem sobreaviso
+        # Clique no Resumo (Matriz Geral): exibe TODAS as cidades independentemente de terem sobreaviso
         if termo_lower == "todas_as_cidades":
             for linha in linhas:
                 if len(linha) > 1:
@@ -316,7 +373,7 @@ def buscar():
                         "SEGUNDA-FEIRA",
                         "TÉCNICO RESPONSÁVEL",
                     ]:
-                        resultados.append(extrair_dados_plantao_linha(linha))
+                        resultados.append(extrair_dados_matriz_geral(linha))
             return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
         filiais_encontradas = [
@@ -359,7 +416,7 @@ def buscar():
             return jsonify({
                 "sucesso": True,
                 "total": 0,
-                "mensagem": "Essa filial não possui sobreaviso no momento",
+                "mensagem": "Essa cidade não possui sobreaviso no momento",
                 "dados": [],
             })
 
@@ -377,16 +434,16 @@ def buscar():
                 ]:
                     continue
 
-                dados_linha = extrair_dados_plantao_linha(linha)
-
                 if e_busca_filial:
-                    # Pesquisa por Filial: exibe SOMENTE as cidades que têm sobreaviso real
+                    dados_linha = extrair_dados_plantao_linha(linha)
+                    # Pesquisa por Filial: exibe SOMENTE as cidades da filial que têm sobreaviso real
                     if (
                         coluna_filial in filiais_encontradas
                         and dados_linha["tem_tecnico_real"]
                     ):
                         resultados.append(dados_linha)
                 elif e_busca_cidade:
+                    dados_linha = extrair_dados_plantao_linha(linha)
                     # Pesquisa por Cidade Específica: exibe mesmo que não tenha sobreaviso
                     if coluna_cidade in cidades_encontradas:
                         resultados.append(dados_linha)
@@ -395,7 +452,7 @@ def buscar():
             return jsonify({
                 "sucesso": True,
                 "total": 0,
-                "mensagem": "Essa filial não possui sobreaviso no momento",
+                "mensagem": "Essa cidade não possui sobreaviso no momento",
                 "dados": [],
             })
 
