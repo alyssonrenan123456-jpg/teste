@@ -220,7 +220,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Resumo total (modal) traz absolutamente todas as cidades
+        # 3. Resumo total (modal) traz absolutamente todas as cidades
         if termo_lower == 'todas_as_cidades':
             for linha in linhas:
                 if len(linha) > 1:
@@ -266,14 +266,15 @@ def buscar():
                     continue
 
                 dados_linha = extrair_dados_plantao_linha(linha)
-
-                # Filtro estrito: Só adiciona se o status for explicitamente 'SIM' (possui sobreaviso)
                 tem_sobreaviso = dados_linha["status"].strip().upper() == "SIM"
 
-                if tem_sobreaviso:
-                    if e_busca_filial and coluna_filial in filiais_encontradas:
+                if e_busca_filial:
+                    # 1. Regra para Filial: só adiciona se a filial bater E tiver sobreaviso (SIM)
+                    if coluna_filial in filiais_encontradas and tem_sobreaviso:
                         resultados.append(dados_linha)
-                    elif e_busca_cidade and coluna_cidade in cidades_encontradas:
+                elif e_busca_cidade:
+                    # 2. Regra para Cidade Específica: exibe mesmo que não tenha sobreaviso
+                    if coluna_cidade in cidades_encontradas:
                         resultados.append(dados_linha)
 
         if len(resultados) == 0:
