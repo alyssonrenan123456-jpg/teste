@@ -71,7 +71,6 @@
             animation: soft-pulse 2.5s infinite ease-in-out;
         }
 
-        /* Animação do Radar */
         @keyframes radar-wave {
             0% { transform: scale(0.8); opacity: 0.8; }
             100% { transform: scale(2.2); opacity: 0; }
@@ -79,7 +78,6 @@
         .radar-circle-1 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); }
         .radar-circle-2 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); animation-delay: 1.5s; }
 
-        /* Painel Retrátil do canto inferior esquerdo */
         #painel-ajuda-esq {
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
             transform: translateY(20px) scale(0.95);
@@ -102,7 +100,7 @@
 
     <div class="w-full max-w-4xl">
         
-        <!-- Cabeçalho com Botão Externo (Rede Neutra) -->
+        <!-- Cabeçalho com Botão Externo -->
         <div class="flex justify-between items-center mb-6">
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 rounded-full border border-indigo-500/25">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 status-pulse inline-block"></span>
@@ -182,10 +180,8 @@
         </div>
     </div>
 
-    <!-- BOTÃO FLUTUANTE E PAINEL RETRÁTIL (Canto Inferior Esquerdo) -->
+    <!-- BOTÃO FLUTUANTE E PAINEL RETRÁTIL -->
     <div class="fixed bottom-5 left-5 z-50 flex flex-col items-start">
-        
-        <!-- Painel que sobe ao clicar -->
         <div id="painel-ajuda-esq" class="glass-panel w-80 sm:w-96 rounded-3xl p-5 shadow-2xl border border-slate-700/80 mb-3 bg-slate-900/95">
             <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
                 <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -204,7 +200,6 @@
             </div>
         </div>
 
-        <!-- Botão " ?" no canto inferior esquerdo -->
         <button onclick="togglePainelEsquerda()" class="w-12 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-xl flex items-center justify-center transition-all hover:scale-105 border border-indigo-400/30 text-lg">
             ?
         </button>
@@ -246,7 +241,6 @@
                     <textarea id="msg-previa" rows="5" readonly class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 text-xs font-mono leading-relaxed resize-none"></textarea>
                 </div>
                 
-                <!-- Feedback visual discreto de cópia -->
                 <div id="feedback-copia" class="hidden text-center text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 py-2 rounded-xl">
                     ✓ Mensagem copiada com sucesso para a área de transferência!
                 </div>
@@ -493,15 +487,16 @@
                 const feedback = document.getElementById('feedback-copia');
                 feedback.classList.remove('hidden');
             }).catch(err => {
-                alert('Erro ao copiar texto.');
+                alert('Erro ao copiar texto para a área de transferência.');
             });
         }
 
         async function abrirResumoPlantao() {
             const modal = document.getElementById('modal-resumo');
             const conteudo = document.getElementById('modal-conteudo');
+            
             modal.classList.remove('hidden');
-            conteudo.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando matriz de plantões...</div>';
+            conteudo.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando matriz geral...</div>';
 
             try {
                 const response = await fetch('/api/buscar', {
@@ -509,35 +504,59 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ termo: 'todas_as_cidades', tipo: 'plantao' })
                 });
+
                 const data = await response.json();
 
-                if (!data.sucesso || data.dados.length === 0) {
-                    conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Não foi possível carregar o resumo.</div>';
+                if (!data.sucesso || !data.dados || data.dados.length === 0) {
+                    conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro ao carregar a matriz de plantão.</div>';
                     return;
                 }
 
-                let html = '<div class="space-y-2">';
+                let html = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950/80 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="py-3 px-4">Filial</th>
+                                    <th class="py-3 px-4">Cidade</th>
+                                    <th class="py-3 px-4 text-center">Sábado</th>
+                                    <th class="py-3 px-4 text-center">Domingo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60">
+                `;
+
                 data.dados.forEach(item => {
-                    const temSobreaviso = item.status.toUpperCase() === 'SIM';
-                    if (temSobreaviso) {
-                        html += `
-                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                <div>
-                                    <span class="text-xs font-bold text-indigo-400">${item.filial}</span>
-                                    <h4 class="text-sm font-semibold text-white">${item.cidade}</h4>
-                                </div>
-                                <div class="text-xs text-slate-300 space-y-0.5 sm:text-right">
-                                    <div><strong>Sáb:</strong> ${item.tecnico_sabado}</div>
-                                    <div><strong>Dom:</strong> ${item.tecnico_domingo}</div>
-                                </div>
-                            </div>
-                        `;
-                    }
+                    const simSab = item.tecnico_sabado.toLowerCase() === 'sim';
+                    const simDom = item.tecnico_domingo.toLowerCase() === 'sim';
+
+                    html += `
+                        <tr class="hover:bg-slate-900/40 transition-colors">
+                            <td class="py-2.5 px-4 font-medium text-white">${item.filial}</td>
+                            <td class="py-2.5 px-4 text-indigo-300">${item.cidade}</td>
+                            <td class="py-2.5 px-4 text-center">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${simSab ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
+                                    ${item.tecnico_sabado}
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${simDom ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
+                                    ${item.tecnico_domingo}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
                 });
-                html += '</div>';
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
                 conteudo.innerHTML = html;
             } catch (err) {
-                conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro ao buscar dados do resumo.</div>';
+                conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro de comunicação ao carregar o resumo.</div>';
             }
         }
 
