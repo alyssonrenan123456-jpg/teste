@@ -71,31 +71,24 @@
             animation: soft-pulse 2.5s infinite ease-in-out;
         }
 
-        /* Animações do Deserto (Cacto e Tumbleweed) */
-        @keyframes growCactus {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
+        /* Animação do Radar / Pulso Digital Moderno */
+        @keyframes radar-wave {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
         }
 
-        @keyframes tumbleweedMove {
-            0% { transform: translateX(-150px) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateX(350px) rotate(720deg); opacity: 0; }
+        .radar-circle-1 {
+            animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8);
         }
-
-        .anim-cacto {
-            animation: growCactus 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        .anim-mato {
-            position: absolute;
-            bottom: 25px;
-            left: 0;
-            font-size: 24px;
-            animation: tumbleweedMove 4s linear infinite;
-            pointer-events: none;
+        .radar-circle-2 {
+            animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8);
+            animation-delay: 1.5s;
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -167,18 +160,21 @@
             <p class="text-slate-400 mt-3 text-xs tracking-wide">CONSULTANDO DADOS...</p>
         </div>
 
-        <!-- Resultados (Com animação de ociosidade/deserto) -->
+        <!-- Resultados / Animação de Radar Inicial -->
         <div id="resultados-container" class="space-y-4">
-            <div id="idle-state" class="relative overflow-hidden text-center py-16 px-4 border border-dashed border-slate-800/80 rounded-3xl bg-slate-950/30 transition-all">
-                <!-- Elemento do Cacto (Aparece após alguns segundos parado) -->
-                <div id="container-cacto" class="hidden mb-3">
-                    <span class="text-4xl anim-cacto inline-block cursor-pointer" title="Psiu... Vai pesquisar alguma coisa!" onclick="fazerCactoPiscar()">🌵</span>
-                </div>
-                <!-- Bola de mato rolando do deserto (Tumbleweed) -->
-                <div id="container-mato"></div>
+            <div class="glass-panel rounded-3xl p-12 text-center relative overflow-hidden border border-slate-800/80 shadow-xl flex flex-col items-center justify-center min-h-[260px]">
+                
+                <!-- Animação do Radar no Fundo -->
+                <div class="absolute w-24 h-24 rounded-full border border-indigo-500/30 radar-circle-1 pointer-events-none"></div>
+                <div class="absolute w-24 h-24 rounded-full border border-indigo-500/20 radar-circle-2 pointer-events-none"></div>
 
-                <svg id="icone-padrao" class="w-10 h-10 mx-auto text-slate-600 mb-2 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                <p id="texto-ocioso" class="text-sm font-medium text-slate-500 transition-all">Digite uma cidade ou filial acima para visualizar as informações.</p>
+                <!-- Ícone Central do Radar -->
+                <div class="relative z-10 w-14 h-14 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+
+                <h3 class="relative z-10 text-base font-semibold text-white mb-1">Pronto para Consultas</h3>
+                <p class="relative z-10 text-xs text-slate-400 max-w-sm">Digite o nome de uma cidade, sigla ou filial acima para iniciar o monitoramento em tempo real.</p>
             </div>
         </div>
     </div>
@@ -214,63 +210,6 @@
     <!-- Scripts -->
     <script>
         let tipoAtual = 'agendamento';
-        let idleTimer = null;
-        let isDesertoAtivo = false;
-
-        // Gerenciador de ociosidade (Ativa o deserto após 8 segundos sem pesquisar nada)
-        function resetarIdleTimer() {
-            clearTimeout(idleTimer);
-            reremoverDeserto();
-            
-            idleTimer = setTimeout(() => {
-                ativarModoDeserto();
-            }, 180000); // 3 minutos de inatividade
-        }
-
-        function ativarModoDeserto() {
-            const containerCacto = document.getElementById('container-cacto');
-            const containerMato = document.getElementById('container-mato');
-            const textoOcioso = document.getElementById('texto-ocioso');
-            const iconePadrao = document.getElementById('icone-padrao');
-
-            if (!containerCacto || isDesertoAtivo) return;
-            isDesertoAtivo = true;
-
-            containerCacto.classList.remove('hidden');
-            if (iconePadrao) iconePadrao.style.opacity = '0.3';
-            if (textoOcioso) textoOcioso.innerHTML = "<i>Muito silêncio por aqui... O cacto tá crescendo esperando você pesquisar algo. 🌵</i>";
-
-            // Cria o matinho rolando (tumbleweed) periodicamente
-            window.matoInterval = setInterval(() => {
-                const mato = document.createElement('div');
-                mato.className = 'anim-mato';
-                mato.innerText = '🌾';
-                containerMato.appendChild(mato);
-                setTimeout(() => mato.remove(), 4000);
-            }, 2500);
-        }
-
-        function reremoverDeserto() {
-            isDesertoAtivo = false;
-            clearInterval(window.matoInterval);
-            const containerCacto = document.getElementById('container-cacto');
-            const containerMato = document.getElementById('container-mato');
-            const textoOcioso = document.getElementById('texto-ocioso');
-            const iconePadrao = document.getElementById('icone-padrao');
-
-            if (containerCacto) containerCacto.classList.add('hidden');
-            if (containerMato) containerMato.innerHTML = '';
-            if (iconePadrao) iconePadrao.style.opacity = '1';
-            if (textoOcioso) textoOcioso.innerText = "Digite uma cidade ou filial acima para visualizar as informações.";
-        }
-
-        function fazerCactoPiscar() {
-            alert("🌵 O cacto disse: 'Ei, digita logo uma cidade aí no campo de busca!'");
-        }
-
-        // Monitora digitação para resetar o tempo de ociosidade
-        document.getElementById('termo-busca').addEventListener('input', resetarIdleTimer);
-        window.onload = resetarIdleTimer;
 
         function atualizarTimestamp() {
             const agora = new Date();
@@ -282,7 +221,6 @@
 
         function setTipo(tipo) {
             tipoAtual = tipo;
-            resetarIdleTimer();
             const btnAgendamento = document.getElementById('btn-agendamento');
             const btnPlantao = document.getElementById('btn-plantao');
             const inputTermo = document.getElementById('termo-busca');
@@ -308,7 +246,6 @@
                 return;
             }
 
-            reremoverDeserto();
             loading.classList.remove('hidden');
             container.innerHTML = '';
 
