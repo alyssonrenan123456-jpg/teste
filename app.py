@@ -303,7 +303,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Resumo total (modal) traz absolutamente todas as cidades
+        # Resumo total (modal) traz absolutamente todas as cidades com ou sem sobreaviso
         if termo_lower == "todas_as_cidades":
             for linha in linhas:
                 if len(linha) > 1:
@@ -380,10 +380,14 @@ def buscar():
                 dados_linha = extrair_dados_plantao_linha(linha)
 
                 if e_busca_filial:
-                    # Exibe todas as cidades da filial independentemente de terem técnico escalado
-                    if coluna_filial in filiais_encontradas:
+                    # Pesquisa por Filial: exibe SOMENTE as cidades que têm sobreaviso real
+                    if (
+                        coluna_filial in filiais_encontradas
+                        and dados_linha["tem_tecnico_real"]
+                    ):
                         resultados.append(dados_linha)
                 elif e_busca_cidade:
+                    # Pesquisa por Cidade Específica: exibe mesmo que não tenha sobreaviso
                     if coluna_cidade in cidades_encontradas:
                         resultados.append(dados_linha)
 
