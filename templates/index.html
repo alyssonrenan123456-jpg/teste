@@ -245,6 +245,11 @@
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Prévia da Mensagem</label>
                     <textarea id="msg-previa" rows="5" readonly class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 text-xs font-mono leading-relaxed resize-none"></textarea>
                 </div>
+                
+                <!-- Feedback visual discreto de cópia -->
+                <div id="feedback-copia" class="hidden text-center text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 py-2 rounded-xl">
+                    ✓ Mensagem copiada com sucesso para a área de transferência!
+                </div>
             </div>
 
             <div class="px-6 py-4 border-t border-slate-800/80 bg-slate-950/60 flex justify-between items-center">
@@ -458,6 +463,7 @@
             document.getElementById('msg-tecnico').value = tecnico;
             document.getElementById('msg-assunto').value = '';
             document.getElementById('msg-cliente').value = '';
+            document.getElementById('feedback-copia').classList.add('hidden');
             atualizarPreviaMensagem();
             document.getElementById('modal-mensagem').classList.remove('hidden');
         }
@@ -483,10 +489,16 @@
             previa.setSelectionRange(0, 99999);
 
             navigator.clipboard.writeText(previa.value).then(() => {
-                alert('Mensagem copiada para a área de transferência com sucesso! 📋');
-                fecharModalMensagem();
+                // Exibe aviso visual dentro do próprio modal sem pop-up nativo
+                const feedback = document.getElementById('feedback-copia');
+                feedback.classList.remove('hidden');
+                
+                // Fecha o modal após 1.2 segundos automaticamente
+                setTimeout(() => {
+                    fecharModalMensagem();
+                }, 1200);
             }).catch(err => {
-                alert('Erro ao copiar mensagem.');
+                console.error('Erro ao copiar', err);
             });
         }
 
@@ -537,7 +549,7 @@
                                 ${temSab ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
                             </td>
                             <td class="p-4 text-center">
-                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-semibold border border-slate-800 inline-block">Não</span>'}
+                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
                             </td>
                         </tr>
                     `;
