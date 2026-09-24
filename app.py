@@ -98,7 +98,7 @@ def extrair_dados_plantao_linha(linha):
     """Extrai com segurança os dados de uma linha da planilha de plantão"""
     coluna_filial = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
-    status = linha[3].strip() if len(linha) > 3 else "-"
+    status_bruto = linha[3].strip() if len(linha) > 3 else "-"
 
     tec_sabado = "Nenhum técnico escalado"
     jornada_sabado = "-"
@@ -120,14 +120,23 @@ def extrair_dados_plantao_linha(linha):
     if len(tecnicos_encontrados) > 1:
         tec_domingo, jornada_domingo = tecnicos_encontrados[1]
 
+    # Validação rigorosa: Tem técnico real escalado?
+    tem_tec_sabado = tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_sabado != ""
+    tem_tec_domingo = tec_domingo not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_domingo != ""
+    
+    # O sobreaviso só é SIM de verdade se a planilha diz SIM e TEM técnico escalado em pelo menos um dos dias
+    tem_sobreaviso_real = (status_bruto.upper() == "SIM") and (tem_tec_sabado or tem_tec_domingo)
+    status_final = "SIM" if tem_sobreaviso_real else "NÃO"
+
     return {
         "filial": coluna_filial,
         "cidade": coluna_cidade,
-        "status": status,
+        "status": status_final,
         "tecnico_sabado": tec_sabado,
         "jornada_sabado": jornada_sabado,
         "tecnico_domingo": tec_domingo,
-        "jornada_domingo": jornada_domingo
+        "jornada_domingo": jornada_domingo,
+        "tem_tecnico_real": tem_sobreaviso_real
     }
 
 @app.route('/')
@@ -220,7 +229,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # 3. Resumo total (modal) traz absolutamente todas as cidades
+        # Resumo total (modal) traz absolutamente todas as cidades
         if termo_lower == 'todas_as_cidades':
             for linha in linhas:
                 if len(linha) > 1:
@@ -266,11 +275,10 @@ def buscar():
                     continue
 
                 dados_linha = extrair_dados_plantao_linha(linha)
-                tem_sobreaviso = dados_linha["status"].strip().upper() == "SIM"
 
                 if e_busca_filial:
-                    # 1. Regra para Filial: só adiciona se a filial bater E tiver sobreaviso (SIM)
-                    if coluna_filial in filiais_encontradas and tem_sobreaviso:
+                    # 1. Regra para Filial: só exibe se pertencer à filial E tiver sobreaviso REAL (com técnico escalado)
+                    if coluna_filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
                         resultados.append(dados_linha)
                 elif e_busca_cidade:
                     # 2. Regra para Cidade Específica: exibe mesmo que não tenha sobreaviso
