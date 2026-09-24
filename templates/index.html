@@ -1,270 +1,14 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Agendamentos e Plantões</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-            color: #f8fafc;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .glass {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .glass-card {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        /* Estilização da Modal */
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-        }
-    </style>
-</head>
-<body class="p-4 md:p-8 flex flex-col items-center">
-
-    <div class="w-full max-w-4xl">
-        <!-- Cabeçalho -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-                Painel de Consultas Operacionais
-            </h1>
-            <p class="text-slate-400 mt-2 text-sm md:text-base">Consulte agendamentos por cidade/sigla ou verifique a escala de plantão.</p>
-        </div>
-
-        <!-- Barra de Controles e Abas -->
-        <div class="glass rounded-2xl p-6 shadow-2xl mb-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-                <!-- Seletor de Tipo (Abas) -->
-                <div class="flex bg-slate-900/80 p-1.5 rounded-xl w-full sm:w-auto border border-slate-700">
-                    <button id="btn-agendamento" onclick="setTipo('agendamento')" class="flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 bg-purple-600 text-white shadow-lg">
-                        Agendamentos
-                    </button>
-                    <button id="btn-plantao" onclick="setTipo('plantao')" class="flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 text-slate-400 hover:text-white">
-                        Plantão (Sobreaviso)
-                    </button>
-                </div>
-
-                <!-- Botão Resumo de Plantão (Fim de Semana) -->
-                <button onclick="abrirResumoPlantao()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg transition-all flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"></path></svg>
-                    Resumo do Fim de Semana
-                </button>
-            </div>
-
-            <!-- Campo de Busca -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <input type="text" id="termo-busca" placeholder="Digite a cidade, sigla (ex: rsl) ou filial..." class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-sm md:text-base transition-all" onkeypress="if(event.key === 'Enter') realizarBusca()">
-                <button onclick="realizarBusca()" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl shadow-lg transition-all text-sm md:text-base flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    Pesquisar
-                </button>
-            </div>
-        </div>
-
-        <!-- Área de Resultados -->
-        <div id="loading" class="hidden text-center py-10">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent"></div>
-            <p class="text-slate-400 mt-2 text-sm">Consultando dados em tempo real...</p>
-        </div>
-
-        <div id="resultados-container" class="space-y-4">
-            <!-- Os cards de resultado aparecerão aqui dinamicamente -->
-            <div class="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-2xl">
-                Nenhuma consulta realizada no momento. Digite um termo acima.
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Resumo do Fim de Semana (Plantão Sábado e Domingo) -->
-    <div id="modal-resumo" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
-        <div class="glass w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700">
-            <!-- Cabeçalho da Modal -->
-            <div class="px-6 py-4 border-b border-slate-700/80 flex justify-between items-center bg-slate-900/50">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-100">Escala de Plantão - Fim de Semana</h3>
-                    <p class="text-xs text-slate-400">Validação rápida de técnicos escalados (Sábado e Domingo)</p>
-                </div>
-                <button onclick="fecharResumoPlantao()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-
-            <!-- Conteúdo da Tabela da Modal -->
-            <div class="p-6 overflow-y-auto flex-1 space-y-3" id="modal-conteudo">
-                <div class="text-center py-8 text-slate-400">Carregando escala do fim de semana...</div>
-            </div>
-
-            <!-- Rodapé da Modal -->
-            <div class="px-6 py-3 border-t border-slate-700/80 bg-slate-900/50 flex justify-end">
-                <button onclick="fecharResumoPlantao()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-colors">
-                    Fechar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script JavaScript Global -->
-    <script>
-        let tipoAtual = 'agendamento';
-
-        function setTipo(tipo) {
-            tipoAtual = tipo;
-            const btnAgendamento = document.getElementById('btn-agendamento');
-            const btnPlantao = document.getElementById('btn-plantao');
-            const inputTermo = document.getElementById('termo-busca');
-
-            if (tipo === 'agendamento') {
-                btnAgendamento.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 bg-purple-600 text-white shadow-lg";
-                btnPlantao.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 text-slate-400 hover:text-white";
-                inputTermo.placeholder = "Digite a cidade ou sigla (ex: rsl, bnu, jba)...";
-            } else {
-                btnPlantao.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 bg-purple-600 text-white shadow-lg";
-                btnAgendamento.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 text-slate-400 hover:text-white";
-                inputTermo.placeholder = "Digite a filial ou cidade (ex: 02 - RSL, Rio do Sul)...";
-            }
-        }
-
-        async function realizarBusca() {
-            const termo = document.getElementById('termo-busca').value.trim();
-            const container = document.getElementById('resultados-container');
-            const loading = document.getElementById('loading');
-
-            if (!termo) {
-                alert('Por favor, digite um termo para pesquisar.');
-                return;
-            }
-
-            loading.classList.remove('hidden');
-            container.innerHTML = '';
-
-            try {
-                const response = await fetch('/api/buscar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ termo, tipo: tipoAtual })
-                });
-
-                const data = await response.json();
-                loading.classList.add('hidden');
-
-                if (!data.sucesso) {
-                    container.innerHTML = `<div class="glass-card p-6 rounded-2xl text-center text-red-400 border border-red-500/20">${data.erro || 'Erro ao buscar dados.'}</div>`;
-                    return;
-                }
-
-                if (data.dados.length === 0) {
-                    container.innerHTML = `<div class="glass-card p-6 rounded-2xl text-center text-slate-400 border border-slate-700">Nenhum resultado encontrado para "<strong>${termo}</strong>".</div>`;
-                    return;
-                }
-
-                let html = '';
-                if (tipoAtual === 'agendamento') {
-                    data.dados.forEach(item => {
-                        html += `
-                            <div class="glass-card rounded-2xl p-6 shadow-xl border border-slate-700/60 hover:border-purple-500/50 transition-all">
-                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4 border-b border-slate-700/50 pb-3">
-                                    <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                        ${item.cidade}
-                                    </h2>
-                                    <span class="text-xs px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full font-medium border border-purple-500/30">Regional: ${item.regional}</span>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                    <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
-                                        <span class="block text-slate-400 text-xs mb-1">Total Conectados</span>
-                                        <span class="font-semibold text-slate-200 text-base">${item.conectados}</span>
-                                    </div>
-                                    <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
-                                        <span class="block text-slate-400 text-xs mb-1">TTTH</span>
-                                        <span class="font-semibold text-slate-200 text-base">${item.ttth}</span>
-                                    </div>
-                                    <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
-                                        <span class="block text-slate-400 text-xs mb-1">Responsável Agendamento</span>
-                                        <span class="font-semibold text-purple-300 text-base">${item.responsavel}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    data.dados.forEach(item => {
-                        const temSab = item.tecnico_sabado && item.tecnico_sabado !== 'Nenhum técnico escalado' && item.tecnico_sabado !== 'NENHUMA OPÇÃO';
-                        const temDom = item.tecnico_domingo && item.tecnico_domingo !== 'Nenhum técnico escalado' && item.tecnico_domingo !== 'NENHUMA OPÇÃO';
-
-                        html += `
-                            <div class="glass-card rounded-2xl p-6 shadow-xl border border-slate-700/60 hover:border-purple-500/50 transition-all">
-                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4 border-b border-slate-700/50 pb-3">
-                                    <div>
-                                        <h2 class="text-xl font-bold text-slate-100">${item.filial}</h2>
-                                        <p class="text-sm text-purple-300 font-medium">${item.cidade}</p>
-                                    </div>
-                                    <span class="text-xs px-3 py-1 ${item.status.toUpperCase() === 'SIM' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'} rounded-full font-medium border">
-                                        Sobreaviso: ${item.status}
-                                    </span>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div class="bg-slate-900/50 p-4 rounded-xl border ${temSab ? 'border-emerald-500/30' : 'border-slate-800'}">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="font-semibold text-slate-300 flex items-center gap-1.5">
-                                                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                                Sábado
-                                            </span>
-                                            <span class="text-xs px-2 py-0.5 rounded ${temSab ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
-                                                ${temSab ? 'Escalado' : 'Sem plantão'}
-                                            </span>
-                                        </div>
-                                        <p class="text-slate-200 font-medium">${item.tecnico_sabado}</p>
-                                        <p class="text-xs text-slate-400 mt-1">Jornada: ${item.jornada_sabado}</p>
-                                    </div>
-                                    <div class="bg-slate-900/50 p-4 rounded-xl border ${temDom ? 'border-emerald-500/30' : 'border-slate-800'}">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="font-semibold text-slate-300 flex items-center gap-1.5">
-                                                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                                Domingo
-                                            </span>
-                                            <span class="text-xs px-2 py-0.5 rounded ${temDom ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
-                                                ${temDom ? 'Escalado' : 'Sem plantão'}
-                                            </span>
-                                        </div>
-                                        <p class="text-slate-200 font-medium">${item.tecnico_domingo}</p>
-                                        <p class="text-xs text-slate-400 mt-1">Jornada: ${item.jornada_domingo}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-
-                container.innerHTML = html;
-            } catch (err) {
-                loading.classList.add('hidden');
-                container.innerHTML = `<div class="glass-card p-6 rounded-2xl text-center text-red-400 border border-red-500/20">Erro ao comunicar com o servidor.</div>`;
-            }
-        }
-
-        // Funções da Modal de Resumo de Plantão
-        async function abrirResumoPlantao() {
+async function abrirResumoPlantao() {
             const modal = document.getElementById('modal-resumo');
             const conteudo = document.getElementById('modal-conteudo');
             modal.classList.remove('hidden');
-            conteudo.innerHTML = `<div class="text-center py-10 text-slate-400"><div class="inline-block animate-spin rounded-full h-6 w-6 border-3 border-purple-500 border-t-transparent mb-2"></div><br>Verificando todas as cidades para o fim de semana...</div>`;
+            conteudo.innerHTML = `<div class="text-center py-10 text-slate-400"><div class="inline-block animate-spin rounded-full h-6 w-6 border-3 border-purple-500 border-t-transparent mb-2"></div><br>Carregando todas as cidades e escalas...</div>`;
 
             try {
-                // Realiza uma busca curinga para trazer todas as cidades do plantão
                 const response = await fetch('/api/buscar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ termo: 'a', tipo: 'plantao' })
+                    body: JSON.stringify({ termo: 'TODAS_AS_CIDADES', tipo: 'plantao' })
                 });
                 const data = await response.json();
 
@@ -297,10 +41,10 @@
                                 <span class="text-xs text-slate-400">${item.filial}</span>
                             </td>
                             <td class="p-3 text-center">
-                                ${temSab ? '<span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold border border-emerald-500/30 inline-block">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-full text-xs inline-block">Não</span>'}
+                                ${temSab ? '<span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold border border-emerald-500/30 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-full text-xs inline-block">Não</span>'}
                             </td>
                             <td class="p-3 text-center">
-                                ${temDom ? '<span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold border border-emerald-500/30 inline-block">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-full text-xs inline-block">Não</span>'}
+                                ${temDom ? '<span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold border border-emerald-500/30 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-full text-xs inline-block">Não</span>'}
                             </td>
                         </tr>
                     `;
@@ -313,10 +57,3 @@
                 conteudo.innerHTML = `<div class="text-center py-6 text-red-400">Erro ao carregar o resumo da escala.</div>`;
             }
         }
-
-        function fecharResumoPlantao() {
-            document.getElementById('modal-resumo').classList.add('hidden');
-        }
-    </script>
-</body>
-</html>
