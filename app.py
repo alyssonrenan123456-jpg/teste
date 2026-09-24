@@ -105,27 +105,20 @@ def extrair_dados_plantao_linha(linha):
     tec_domingo = "Nenhum técnico escalado"
     jornada_domingo = "-"
 
-    # Coleta todos os técnicos válidos encontrados na linha após a coluna 3
     tecnicos_encontrados = []
     for i in range(4, len(linha)):
         val = linha[i].strip()
         val_upper = val.upper()
         if "PRÓPRIOS" in val_upper or "TERCEIRIZADOS" in val_upper:
-            # Pega o técnico e verifica se a próxima coluna é a jornada
             jornada = "-"
             if i + 1 < len(linha) and (":" in linha[i+1] or "h" in linha[i+1].lower() or "as" in linha[i+1].lower() or "-" in linha[i+1]):
                 jornada = linha[i+1].strip()
             tecnicos_encontrados.append((val, jornada))
 
-    # Atribui o primeiro encontrado para o Sábado e o segundo para o Domingo (se houver)
     if len(tecnicos_encontrados) > 0:
         tec_sabado, jornada_sabado = tecnicos_encontrados[0]
     if len(tecnicos_encontrados) > 1:
         tec_domingo, jornada_domingo = tecnicos_encontrados[1]
-    elif len(tecnicos_encontrados) == 1 and ("domingo" in str(linha).lower() or len(tecnicos_encontrados) == 1):
-        # Se houver apenas 1 técnico cadastrado mas ele atende o fim de semana, reflete ou duplica se necessário, 
-        # mas mantemos separado caso venha preenchido na matriz.
-        pass
 
     return {
         "filial": coluna_filial,
@@ -227,7 +220,7 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Se o termo for 'TODAS_AS_CIDADES' (usado no modal de resumo), traz 100% das linhas válidas
+        # Resumo total (modal) traz absolutamente todas as cidades
         if termo_lower == 'todas_as_cidades':
             for linha in linhas:
                 if len(linha) > 1:
@@ -262,7 +255,7 @@ def buscar():
                 e_busca_cidade = True
 
         if not e_busca_filial and not e_busca_cidade:
-            return jsonify({"sucesso": True, "total": 0, "mensagem": "Nenhuma filial ou cidade encontrada", "dados": []})
+            return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa filial não possui sobreaviso no momento", "dados": []})
 
         for linha in linhas:
             if len(linha) > 1:
@@ -274,10 +267,17 @@ def buscar():
 
                 dados_linha = extrair_dados_plantao_linha(linha)
 
-                if e_busca_filial and coluna_filial in filiais_encontradas:
-                    resultados.append(dados_linha)
-                elif e_busca_cidade and coluna_cidade in cidades_encontradas:
-                    resultados.append(dados_linha)
+                # Filtro estrito: Só adiciona se o status for explicitamente 'SIM' (possui sobreaviso)
+                tem_sobreaviso = dados_linha["status"].strip().upper() == "SIM"
+
+                if tem_sobreaviso:
+                    if e_busca_filial and coluna_filial in filiais_encontradas:
+                        resultados.append(dados_linha)
+                    elif e_busca_cidade and coluna_cidade in cidades_encontradas:
+                        resultados.append(dados_linha)
+
+        if len(resultados) == 0:
+            return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa filial não possui sobreaviso no momento", "dados": []})
 
     return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
