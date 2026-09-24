@@ -12,6 +12,74 @@ URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZng
 # URL definitiva da planilha de Plantão
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
+# Dicionário de siglas exclusivo para o Agendamento
+MAPEAMENTO_SIGLAS_AGENDAMENTO = {
+    "bnu": "Brunópolis",
+    "cnv": "Campos Novos",
+    "ctb": "Curitibanos",
+    "fbg": "Fraiburgo",
+    "frr": "Frei Rogério",
+    "iom": "Iomerê",
+    "mca": "Monte Carlo",
+    "ppr": "Pinheiro Preto",
+    "vda": "Videira",
+    "agr": "Agronômica",
+    "aur": "Aurora",
+    "itu": "Ituporanga",
+    "lon": "Lontras",
+    "ptl": "Petrolândia",
+    "prd": "Pouso Redondo",
+    "rsl": "Rio do Sul",
+    "cbs": "Campo Belo do Sul",
+    "cat": "Capão Alto",
+    "cpo": "Correia Pinto",
+    "lgs": "Lages",
+    "pta": "Ponte Alta",
+    "api": "Apiúna",
+    "asc": "Ascurra",
+    "blu": "Blumenau",
+    "idl": "Indaial",
+    "rod": "Rodeio",
+    "ace": "Água Doce",
+    "ctv": "Catanduvas",
+    "hdo": "Herval d'Oeste",
+    "ibc": "Ibicaré",
+    "ipi": "Ipira",
+    "jba": "Joaçaba",
+    "lzn": "Luzerna",
+    "ptb": "Piratuba",
+    "svs": "Salto Veloso",
+    "tan": "Tangará",
+    "tzs": "Treze Tílias",
+    "ant": "Anita Garibaldi",
+    "cdr": "Caçador",
+    "mra": "Macieira",
+    "pan": "Ponte Alta do Norte",
+    "sct": "São Cristóvão do Sul",
+    "arq": "Araquari",
+    "bbs": "Balneário Barra do Sul",
+    "brq": "Brusque",
+    "cmb": "Camboriú",
+    "cal": "Campo Alegre",
+    "grm": "Guaramirim",
+    "jas": "Jaraguá do Sul",
+    "jve": "Joinville",
+    "las": "Luiz Alves",
+    "mas": "Massaranduba",
+    "sfs": "São Francisco do Sul",
+    "sch": "Schroeder",
+    "evv": "Erval Velho",
+    "ldp": "Lacerdópolis",
+    "rdc": "Rio dos Cedros",
+    "bpi": "Balneário Piçarras",
+    "bve": "Barra Velha",
+    "nav": "Navegantes",
+    "pen": "Penha",
+    "sji": "São João do Itaperiú",
+    "gva": "Garuva",
+    "itp": "Itapoá"
+}
+
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
     try:
@@ -49,7 +117,7 @@ def buscar():
     resultados = []
 
     # ==========================================
-    # 1. ABA AGENDAMENTO
+    # 1. ABA AGENDAMENTO (Usa siglas exclusivamente aqui)
     # ==========================================
     if tipo == 'agendamento':
         cidades_map = {}
@@ -74,22 +142,33 @@ def buscar():
                             }
                     break
 
+        # Se o termo digitado for uma sigla conhecida, converte para o nome oficial da cidade
+        cidades_alvo = []
+        if termo_lower in MAPEAMENTO_SIGLAS_AGENDAMENTO:
+            cidades_alvo.append(MAPEAMENTO_SIGLAS_AGENDAMENTO[termo_lower])
+        else:
+            # Caso contrário, busca pelo nome da cidade digitada
+            for cidade_oficial in cidades_map.keys():
+                if termo_lower in cidade_oficial.lower():
+                    cidades_alvo.append(cidade_oficial)
+
         cidades_disponiveis = list(cidades_map.keys())
-        cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
-        
+        cidades_encontradas = [c for c in cidades_disponiveis if any(alvo.lower() == c.lower() for alvo in cidades_alvo)]
+
         if not cidades_encontradas and cidades_disponiveis:
             match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
-            if match and match[1] >= 60:
+            if match and match[1] >= 75:
                 cidades_encontradas = [match[0]]
 
         if not cidades_encontradas:
-            return jsonify({"sucesso": True, "total": 0, "mensagem": "Cidade não encontrada", "dados": []})
+            return jsonify({"sucesso": True, "total": 0, "mensagem": "Cidade ou sigla não encontrada no Agendamento", "dados": []})
 
         for c in cidades_encontradas:
-            resultados.append(cidades_map[c])
+            if c in cidades_map:
+                resultados.append(cidades_map[c])
 
     # ==========================================
-    # 2. ABA PLANTÃO (Busca Otimizada e Flexível)
+    # 2. ABA PLANTÃO (Busca padrão por Filial ou Cidade na planilha)
     # ==========================================
     else:
         filiais_disponiveis = []
@@ -107,7 +186,6 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Procura correspondência do termo na filial (suporta siglas como rsl, jba, blu, ant, sct, rdc, bve, itp, jve)
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
 
@@ -145,13 +223,11 @@ def buscar():
 
                 status = linha[3].strip() if len(linha) > 3 else "-"
 
-                # Varredura inteligente na linha para localizar plantões de Sábado e Domingo de forma dinâmica
                 tec_sabado = "Nenhum técnico escalado"
                 jornada_sabado = "-"
                 tec_domingo = "Nenhum técnico escalado"
                 jornada_domingo = "-"
 
-                # Analisa as colunas procurando por técnicos escalados
                 for i in range(4, len(linha)):
                     val = linha[i].strip()
                     val_upper = val.upper()
