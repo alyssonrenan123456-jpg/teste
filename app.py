@@ -6,10 +6,10 @@ from rapidfuzz import process, fuzz
 
 app = Flask(__name__)
 
-# URL da planilha de Agendamentos (inalterada)
+# URL da planilha de Agendamentos
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 
-# URL definitiva da planilha de Plantão com o GID exato
+# URL definitiva da planilha de Plantão
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 def ler_csv_online(url):
@@ -86,7 +86,7 @@ def buscar():
             resultados.append(cidades_map[c])
 
     else:
-        # PLANTAO: Mapeamento de Filiais e Cidades
+        # PLANTAO: Varredura robusta para capturar 100% das filiais (incluindo códigos 1002, 1063, etc.)
         filiais_disponiveis = []
         cidades_disponiveis = []
         
@@ -94,14 +94,16 @@ def buscar():
             if len(linha) > 1:
                 f = linha[0].strip()
                 c = linha[1].strip()
-                if f and f.upper() not in ["FILIAL", ":-:", "", "SEGUNDA-FEIRA"]:
+                # Valida se a linha contém dados reais de filial
+                if f and f.upper() not in ["FILIAL", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
                     filiais_disponiveis.append(f)
-                if c and c.upper() not in ["CIDADE", ":-:", "", "SEGUNDA-FEIRA"]:
+                if c and c.upper() not in ["CIDADE", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
                     cidades_disponiveis.append(c)
 
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
+        # Filtro flexível para encontrar filiais por trecho ou número (ex: "1002", "EVV", "01")
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
 
@@ -113,13 +115,14 @@ def buscar():
         elif cidades_encontradas:
             e_busca_cidade = True
         else:
+            # Busca fuzzy inteligente para tolerar erros de digitação e variações de código
             match_filial = process.extractOne(termo, filiais_disponiveis, scorer=fuzz.WRatio) if filiais_disponiveis else None
             match_cidade = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio) if cidades_disponiveis else None
 
             score_filial = match_filial[1] if match_filial else 0
             score_cidade = match_cidade[1] if match_cidade else 0
 
-            if score_filial >= 70 and score_filial >= score_cidade:
+            if score_filial >= 50 and score_filial >= score_cidade:
                 filiais_encontradas = [match_filial[0]]
                 e_busca_filial = True
             elif score_cidade >= 60:
@@ -127,7 +130,7 @@ def buscar():
                 e_busca_cidade = True
 
         if not e_busca_filial and not e_busca_cidade:
-            is_like_filial = any(char.isdigit() for char in termo) or len(termo) <= 3
+            is_like_filial = any(char.isdigit() for char in termo) or len(termo) <= 4
             msg = "Filial não encontrada" if is_like_filial else "Cidade não encontrada"
             return jsonify({"sucesso": True, "total": 0, "mensagem": msg, "dados": []})
 
@@ -141,7 +144,7 @@ def buscar():
 
                 status = linha[3].strip() if len(linha) > 3 else "-"
 
-                # Leitura segura baseada na estrutura padrão do plantão (Col 14: Sábado, Col 16: Domingo)
+                # Extração segura dos técnicos de Sábado e Domingo nas colunas correspondentes
                 tec_sabado = linha[14].strip() if len(linha) > 14 and linha[14].strip() else "Nenhum técnico escalado"
                 jornada_sabado = linha[15].strip() if len(linha) > 15 and linha[15].strip() else "-"
                 tec_domingo = linha[16].strip() if len(linha) > 16 and linha[16].strip() else "Nenhum técnico escalado"
