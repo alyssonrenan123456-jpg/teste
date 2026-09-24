@@ -10,7 +10,7 @@ app = Flask(__name__)
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 
 # URL da sua NOVA planilha de Plantão com exportação CSV direta (ID: 1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA)
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA/export?format=csv&gid=0"
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/edit?gid=1389576198#gid=1389576198"
 
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
