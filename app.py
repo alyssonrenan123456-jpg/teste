@@ -6,9 +6,11 @@ from rapidfuzz import process, fuzz
 
 app = Flask(__name__)
 
-# URLs de exportação direta em CSV das duas planilhas do Google Sheets
+# URL da planilha de Agendamentos (inalterada)
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA/edit?usp=sharing"
+
+# URL da sua NOVA planilha de Plantão com exportação CSV direta (ID: 1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA)
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA/export?format=csv&gid=0"
 
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
@@ -41,7 +43,7 @@ def buscar():
     linhas = ler_csv_online(url)
 
     if not linhas:
-        return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets."}), 500
+        return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets. Verifique se a planilha está publicada na web como CSV."}), 500
 
     termo_lower = termo.lower()
     resultados = []
@@ -49,22 +51,17 @@ def buscar():
     if tipo == 'agendamento':
         cidades_map = {}
         for linha in linhas:
-            # Varre as colunas tratando o deslocamento característico da planilha de agendamento
             for idx, col_val in enumerate(linha):
                 nome_col = col_val.strip()
-                # Localiza onde está o nome da cidade válido (descartando cabeçalho 'CIDADE', traços ou vazios)
                 if nome_col and nome_col.upper() not in ["CIDADE", ":-:", "RESPONSÁVEL", "TOTAL CONECTADOS", "|"]:
-                    # Garante que a linha possui colunas suficientes
                     cidade_nome = nome_col
-                    # Se a cidade foi encontrada na coluna idx, extrai as colunas seguintes
                     if idx + 3 < len(linha):
                         conectados = linha[idx + 1].strip() if idx + 1 < len(linha) else "-"
                         ttth = linha[idx + 2].strip() if idx + 2 < len(linha) else "-"
                         responsavel = linha[idx + 3].strip() if idx + 3 < len(linha) else "Não informado"
                         regional = linha[idx + 4].strip() if idx + 4 < len(linha) else "-"
                         
-                        # Evita salvar entradas inválidas
-                        if responsavel.upper() != "RESPONŚAVEL" and responsavel.upper() != "RESPONSÁVEL":
+                        if responsavel.upper() not in ["RESPONŚAVEL", "RESPONSÁVEL"]:
                             cidades_map[cidade_nome] = {
                                 "cidade": cidade_nome,
                                 "conectados": conectados,
@@ -75,11 +72,8 @@ def buscar():
                     break
 
         cidades_disponiveis = list(cidades_map.keys())
-        
-        # 1. Busca por palavra contida
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
         
-        # 2. Se não encontrou de primeira, usa tolerância a erro de digitação
         if not cidades_encontradas and cidades_disponiveis:
             match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
             if match and match[1] >= 60:
@@ -92,9 +86,10 @@ def buscar():
             resultados.append(cidades_map[c])
 
     else:
-        # LÓGICA DE PLANTÃO (INALTERADA E FUNCIONAL)
-        filiais_disponiveis = list(set([linha[0].strip() for linha in linhas if len(linha) > 0 and linha[0].strip() and linha[0].strip().upper() not in ["FILIAL", ":-:"]]))
-        cidades_disponiveis = list(set([linha[1].strip() for linha in linhas if len(linha) > 1 and linha[1].strip() and linha[1].strip().upper() not in ["CIDADE", ":-:"]]))
+        # PLANTAO: Mapeia corretamente as colunas baseadas na estrutura padrão do sobreaviso
+        # Coluna 0: Filial, Coluna 1: Cidade, Coluna 3: Status, Coluna 14: Técnico Sábado, Coluna 15: Jornada Sábado, Coluna 16: Técnico Domingo, Coluna 17: Jornada Domingo
+        filiais_disponiveis = list(set([linha[0].strip() for linha in linhas if len(linha) > 0 and linha[0].strip() and linha[0].strip().upper() not in ["FILIAL", ":-:", ""]]))
+        cidades_disponiveis = list(set([linha[1].strip() for linha in linhas if len(linha) > 1 and linha[1].strip() and linha[1].strip().upper() not in ["CIDADE", ":-:", ""]]))
 
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
@@ -126,12 +121,19 @@ def buscar():
             return jsonify({"sucesso": True, "total": 0, "mensagem": msg, "dados": []})
 
         for linha in linhas:
-            if len(linha) > 1:
+            if len(linha) > 3:
                 coluna_filial = linha[0].strip()
                 coluna_cidade = linha[1].strip()
                 
-                tec_sabado = linha[14].strip() if len(linha) > 14 else ""
-                tec_domingo = linha[16].strip() if len(linha) > 16 else ""
+                # Ignora linhas que são cabeçalhos
+                if coluna_filial.upper() in ["FILIAL", ":-:", ""]:
+                    continue
+
+                # Proteção de tamanho de índice para evitar erros de leitura na matriz CSV
+                tec_sabado = linha[14].strip() if len(linha) > 14 else "NENHUMA OPÇÃO"
+                jornada_sabado = linha[15].strip() if len(linha) > 15 else "-"
+                tec_domingo = linha[16].strip() if len(linha) > 16 else "NENHUMA OPÇÃO"
+                jornada_domingo = linha[17].strip() if len(linha) > 17 else "-"
 
                 tem_tecnico = (
                     tec_sabado and tec_sabado.upper() != "NENHUMA OPÇÃO"
@@ -145,10 +147,10 @@ def buscar():
                             "filial": coluna_filial,
                             "cidade": coluna_cidade,
                             "status": linha[3].strip() if len(linha) > 3 else "-",
-                            "tecnico_sabado": tec_sabado if tec_sabado else "NENHUMA OPÇÃO",
-                            "jornada_sabado": linha[15].strip() if len(linha) > 15 else "-",
-                            "tecnico_domingo": tec_domingo if tec_domingo else "NENHUMA OPÇÃO",
-                            "jornada_domingo": linha[17].strip() if len(linha) > 17 else "-"
+                            "tecnico_sabado": tec_sabado,
+                            "jornada_sabado": jornada_sabado,
+                            "tecnico_domingo": tec_domingo,
+                            "jornada_domingo": jornada_domingo
                         })
 
                 elif e_busca_cidade and coluna_cidade in cidades_encontradas:
@@ -157,14 +159,13 @@ def buscar():
                         "cidade": coluna_cidade,
                         "status": linha[3].strip() if len(linha) > 3 else "-",
                         "tecnico_sabado": tec_sabado if (tec_sabado and tec_sabado.upper() != "NENHUMA OPÇÃO") else "Nenhum técnico escalado",
-                        "jornada_sabado": linha[15].strip() if len(linha) > 15 and tec_sabado.upper() != "NENHUMA OPÇÃO" else "-",
+                        "jornada_sabado": jornada_sabado if tec_sabado.upper() != "NENHUMA OPÇÃO" else "-",
                         "tecnico_domingo": tec_domingo if (tec_domingo and tec_domingo.upper() != "NENHUMA OPÇÃO") else "Nenhum técnico escalado",
-                        "jornada_domingo": linha[17].strip() if len(linha) > 17 and tec_domingo.upper() != "NENHUMA OPÇÃO" else "-"
+                        "jornada_domingo": jornada_domingo if tec_domingo.upper() != "NENHUMA OPÇÃO" else "-"
                     })
 
     return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
-# Exposição obrigatória para o manipulador serverless da Vercel
 application = app
 
 if __name__ == '__main__':
