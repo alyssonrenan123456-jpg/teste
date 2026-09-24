@@ -13,6 +13,7 @@
             color: #f8fafc;
             min-height: 100vh;
             font-family: 'Outfit', sans-serif;
+            padding-bottom: 90px; /* Espaço para o painel inferior fixo */
         }
 
         .glass-panel {
@@ -71,24 +72,24 @@
             animation: soft-pulse 2.5s infinite ease-in-out;
         }
 
-        /* Animação do Radar / Pulso Digital Moderno */
+        /* Animação do Radar */
         @keyframes radar-wave {
-            0% {
-                transform: scale(0.8);
-                opacity: 0.8;
-            }
-            100% {
-                transform: scale(2.2);
-                opacity: 0;
-            }
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
+        .radar-circle-1 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); }
+        .radar-circle-2 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); animation-delay: 1.5s; }
 
-        .radar-circle-1 {
-            animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8);
+        /* Estilo do Painel Retrátil Inferior */
+        #painel-retratil {
+            transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0px;
+            opacity: 0;
+            overflow: hidden;
         }
-        .radar-circle-2 {
-            animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8);
-            animation-delay: 1.5s;
+        #painel-retratil.ativo {
+            max-height: 350px;
+            opacity: 1;
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -101,18 +102,26 @@
 
     <div class="w-full max-w-4xl">
         
-        <!-- Cabeçalho -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 rounded-full mb-3 border border-indigo-500/25">
+        <!-- Cabeçalho com Botão Externo (Rede Neutra) -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 rounded-full border border-indigo-500/25">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 status-pulse inline-block"></span>
                 <span class="text-xs font-semibold tracking-wide text-indigo-300 uppercase">Sistemas Operacionais Ativos</span>
             </div>
+
+            <!-- Botão para o Outro Site -->
+            <a href="https://rede-neutra.vercel.app/" target="_blank" class="px-4 py-2 bg-slate-900/80 hover:bg-slate-800 text-indigo-300 hover:text-white border border-slate-700/80 rounded-xl text-xs font-medium transition-all flex items-center gap-2 shadow-sm">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                Rede Neutra
+            </a>
+        </div>
+
+        <div class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white">
                 Agendamentos & Sobreavisos
             </h1>
             <p class="text-slate-400 mt-1.5 text-sm md:text-base font-light">Gerenciamento de agendamentos e escalas de plantão.</p>
             
-            <!-- Indicador da Última Atualização -->
             <div class="mt-4 inline-flex items-center gap-2 text-xs text-slate-300 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 shadow-sm">
                 <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 <span>Última sincronização com a planilha: <strong id="ultima-atualizacao" class="text-white font-medium">Agora mesmo</strong></span>
@@ -123,7 +132,6 @@
         <div class="glass-panel rounded-3xl p-6 md:p-8 mb-8">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                 
-                <!-- Abas Estilizadas -->
                 <div class="flex bg-slate-950/60 p-1 rounded-2xl w-full sm:w-auto border border-slate-800/80">
                     <button id="btn-agendamento" onclick="setTipo('agendamento')" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all btn-tech-primary text-white">
                         Agendamentos
@@ -133,7 +141,6 @@
                     </button>
                 </div>
 
-                <!-- Botão de Resumo -->
                 <button onclick="abrirResumoPlantao()" class="w-full sm:w-auto px-5 py-2.5 rounded-2xl font-semibold text-xs md:text-sm btn-tech-success text-white transition-all flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"></path></svg>
                     Resumo do Fim de Semana
@@ -163,18 +170,44 @@
         <!-- Resultados / Animação de Radar Inicial -->
         <div id="resultados-container" class="space-y-4">
             <div class="glass-panel rounded-3xl p-12 text-center relative overflow-hidden border border-slate-800/80 shadow-xl flex flex-col items-center justify-center min-h-[260px]">
-                
-                <!-- Animação do Radar no Fundo -->
                 <div class="absolute w-24 h-24 rounded-full border border-indigo-500/30 radar-circle-1 pointer-events-none"></div>
                 <div class="absolute w-24 h-24 rounded-full border border-indigo-500/20 radar-circle-2 pointer-events-none"></div>
 
-                <!-- Ícone Central do Radar -->
                 <div class="relative z-10 w-14 h-14 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
 
                 <h3 class="relative z-10 text-base font-semibold text-white mb-1">Pronto para Consultas</h3>
                 <p class="relative z-10 text-xs text-slate-400 max-w-sm">Digite o nome de uma cidade, sigla ou filial acima para iniciar o monitoramento em tempo real.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL RETRÁTIL INFERIOR FIXO -->
+    <div class="fixed bottom-0 left-0 right-0 z-45 flex flex-col items-center px-4 pointer-events-none">
+        <div class="w-full max-w-4xl pointer-events-auto">
+            <!-- Conteúdo Retrátil -->
+            <div id="painel-retratil" class="glass-panel rounded-t-3xl border-t border-x border-slate-700/60 p-5 shadow-2xl bg-slate-900/95 mb-0">
+                <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Panorama Regional de Plantão
+                    </h3>
+                    <button onclick="togglePainelRetratil()" class="text-slate-400 hover:text-white p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div id="conteudo-painel-retratil" class="max-h-56 overflow-y-auto space-y-2 pr-1 text-xs">
+                    <div class="text-center py-6 text-slate-400">Clique para carregar o panorama regional...</div>
+                </div>
+            </div>
+
+            <!-- Botão Gatilho Inferior -->
+            <div class="flex justify-center pb-3 pt-2">
+                <button onclick="togglePainelRetratil()" class="px-5 py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-2xl text-xs font-semibold shadow-xl transition-all flex items-center gap-2 backdrop-blur-md">
+                    <svg id="icone-seta-painel" class="w-4 h-4 text-indigo-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                    <span id="texto-botao-painel">Panorama por Filial / Regional</span>
+                </button>
             </div>
         </div>
     </div>
@@ -210,6 +243,8 @@
     <!-- Scripts -->
     <script>
         let tipoAtual = 'agendamento';
+        let painelRetratilAberto = false;
+        let dadosPanoramaCarregados = false;
 
         function atualizarTimestamp() {
             const agora = new Date();
@@ -217,6 +252,73 @@
             const minutos = String(agora.getMinutes()).padStart(2, '0');
             const segundos = String(agora.getSeconds()).padStart(2, '0');
             document.getElementById('ultima-atualizacao').innerText = `${horas}:${minutos}:${segundos}`;
+        }
+
+        async function togglePainelRetratil() {
+            const painel = document.getElementById('painel-retratil');
+            const icone = document.getElementById('icone-seta-painel');
+            painelRetratilAberto = !painelRetratilAberto;
+
+            if (painelRetratilAberto) {
+                painel.classList.add('ativo');
+                icone.style.transform = 'rotate(180deg)';
+                if (!dadosPanoramaCarregados) {
+                    await carregarPanoramaRegional();
+                }
+            } else {
+                painel.classList.remove('ativo');
+                icone.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        async function carregarPanoramaRegional() {
+            const container = document.getElementById('conteudo-painel-retratil');
+            container.innerHTML = `<div class="text-center py-4 text-slate-400">Analisando filiais e sobreavisos...</div>`;
+
+            try {
+                const response = await fetch('/api/buscar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ termo: 'TODAS_AS_CIDADES', tipo: 'plantao' })
+                });
+                const data = await response.json();
+
+                if (!data.sucesso || !data.dados || data.dados.length === 0) {
+                    container.innerHTML = `<div class="text-center py-4 text-slate-400">Nenhum dado encontrado.</div>`;
+                    return;
+                }
+
+                // Agrupa por Filial (ex: "01 - MCA", "02 - RSL", etc.)
+                const grupos = {};
+                data.dados.forEach(item => {
+                    const filial = item.filial || 'Outros';
+                    if (!grupos[filial]) {
+                        grupos[filial] = { total: 0, ativos: 0 };
+                    }
+                    grupos[filial].total += 1;
+                    if (item.status.toUpperCase() === 'SIM') {
+                        grupos[filial].ativos += 1;
+                    }
+                });
+
+                let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">';
+                for (const [filial, info] of Object.entries(grupos)) {
+                    html += `
+                        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                            <span class="font-medium text-slate-200 truncate pr-2">${filial}</span>
+                            <span class="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-lg border border-indigo-500/20 font-medium whitespace-nowrap">
+                                ${info.ativos} de ${info.total} com sobreaviso
+                            </span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+
+                container.innerHTML = html;
+                dadosPanoramaCarregados = true;
+            } catch (err) {
+                container.innerHTML = `<div class="text-center py-4 text-rose-400">Erro ao carregar o panorama regional.</div>`;
+            }
         }
 
         function setTipo(tipo) {
