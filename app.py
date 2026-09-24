@@ -94,6 +94,49 @@ def ler_csv_online(url):
         print(f"Erro ao ler CSV do Google Sheets: {e}")
         return None
 
+def extrair_dados_plantao_linha(linha):
+    """Extrai com segurança os dados de uma linha da planilha de plantão"""
+    coluna_filial = linha[0].strip() if len(linha) > 0 else ""
+    coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
+    status = linha[3].strip() if len(linha) > 3 else "-"
+
+    tec_sabado = "Nenhum técnico escalado"
+    jornada_sabado = "-"
+    tec_domingo = "Nenhum técnico escalado"
+    jornada_domingo = "-"
+
+    # Coleta todos os técnicos válidos encontrados na linha após a coluna 3
+    tecnicos_encontrados = []
+    for i in range(4, len(linha)):
+        val = linha[i].strip()
+        val_upper = val.upper()
+        if "PRÓPRIOS" in val_upper or "TERCEIRIZADOS" in val_upper:
+            # Pega o técnico e verifica se a próxima coluna é a jornada
+            jornada = "-"
+            if i + 1 < len(linha) and (":" in linha[i+1] or "h" in linha[i+1].lower() or "as" in linha[i+1].lower() or "-" in linha[i+1]):
+                jornada = linha[i+1].strip()
+            tecnicos_encontrados.append((val, jornada))
+
+    # Atribui o primeiro encontrado para o Sábado e o segundo para o Domingo (se houver)
+    if len(tecnicos_encontrados) > 0:
+        tec_sabado, jornada_sabado = tecnicos_encontrados[0]
+    if len(tecnicos_encontrados) > 1:
+        tec_domingo, jornada_domingo = tecnicos_encontrados[1]
+    elif len(tecnicos_encontrados) == 1 and ("domingo" in str(linha).lower() or len(tecnicos_encontrados) == 1):
+        # Se houver apenas 1 técnico cadastrado mas ele atende o fim de semana, reflete ou duplica se necessário, 
+        # mas mantemos separado caso venha preenchido na matriz.
+        pass
+
+    return {
+        "filial": coluna_filial,
+        "cidade": coluna_cidade,
+        "status": status,
+        "tecnico_sabado": tec_sabado,
+        "jornada_sabado": jornada_sabado,
+        "tecnico_domingo": tec_domingo,
+        "jornada_domingo": jornada_domingo
+    }
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -102,7 +145,7 @@ def index():
 def buscar():
     dados = request.json or {}
     termo = dados.get('termo', '').strip()
-    tipo = dados.get('tipo', 'agendamento') # 'agendamento' ou 'plantao'
+    tipo = dados.get('tipo', 'agendamento')
 
     if not termo:
         return jsonify({"sucesso": False, "erro": "Informe um termo para consultar."}), 400
@@ -117,7 +160,7 @@ def buscar():
     resultados = []
 
     # ==========================================
-    # 1. ABA AGENDAMENTO (Usa siglas exclusivamente aqui)
+    # 1. ABA AGENDAMENTO
     # ==========================================
     if tipo == 'agendamento':
         cidades_map = {}
@@ -142,12 +185,10 @@ def buscar():
                             }
                     break
 
-        # Se o termo digitado for uma sigla conhecida, converte para o nome oficial da cidade
         cidades_alvo = []
         if termo_lower in MAPEAMENTO_SIGLAS_AGENDAMENTO:
             cidades_alvo.append(MAPEAMENTO_SIGLAS_AGENDAMENTO[termo_lower])
         else:
-            # Caso contrário, busca pelo nome da cidade digitada
             for cidade_oficial in cidades_map.keys():
                 if termo_lower in cidade_oficial.lower():
                     cidades_alvo.append(cidade_oficial)
@@ -168,7 +209,7 @@ def buscar():
                 resultados.append(cidades_map[c])
 
     # ==========================================
-    # 2. ABA PLANTÃO (Busca padrão por Filial ou Cidade na planilha)
+    # 2. ABA PLANTÃO
     # ==========================================
     else:
         filiais_disponiveis = []
@@ -185,6 +226,16 @@ def buscar():
 
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
+
+        # Se o termo for 'TODAS_AS_CIDADES' (usado no modal de resumo), traz 100% das linhas válidas
+        if termo_lower == 'todas_as_cidades':
+            for linha in linhas:
+                if len(linha) > 1:
+                    f = linha[0].strip()
+                    c = linha[1].strip()
+                    if f and f.upper() not in ["FILIAL", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
+                        resultados.append(extrair_dados_plantao_linha(linha))
+            return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
@@ -221,50 +272,12 @@ def buscar():
                 if coluna_filial.upper() in ["FILIAL", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
                     continue
 
-                status = linha[3].strip() if len(linha) > 3 else "-"
-
-                tec_sabado = "Nenhum técnico escalado"
-                jornada_sabado = "-"
-                tec_domingo = "Nenhum técnico escalado"
-                jornada_domingo = "-"
-
-                for i in range(4, len(linha)):
-                    val = linha[i].strip()
-                    val_upper = val.upper()
-                    if "PRÓPRIOS" in val_upper or "TERCEIRIZADOS" in val_upper:
-                        if tec_sabado == "Nenhum técnico escalado":
-                            tec_sabado = val
-                            if i + 1 < len(linha) and linha[i+1].strip():
-                                jornada_sabado = linha[i+1].strip()
-                        elif tec_domingo == "Nenhum técnico escalado" and val != tec_sabado:
-                            tec_domingo = val
-                            if i + 1 < len(linha) and linha[i+1].strip():
-                                jornada_domingo = linha[i+1].strip()
-
-                tem_tecnico = (tec_sabado != "Nenhum técnico escalado") or (tec_domingo != "Nenhum técnico escalado")
+                dados_linha = extrair_dados_plantao_linha(linha)
 
                 if e_busca_filial and coluna_filial in filiais_encontradas:
-                    if tem_tecnico:
-                        resultados.append({
-                            "filial": coluna_filial,
-                            "cidade": coluna_cidade,
-                            "status": status,
-                            "tecnico_sabado": tec_sabado,
-                            "jornada_sabado": jornada_sabado,
-                            "tecnico_domingo": tec_domingo,
-                            "jornada_domingo": jornada_domingo
-                        })
-
+                    resultados.append(dados_linha)
                 elif e_busca_cidade and coluna_cidade in cidades_encontradas:
-                    resultados.append({
-                        "filial": coluna_filial,
-                        "cidade": coluna_cidade,
-                        "status": status,
-                        "tecnico_sabado": tec_sabado,
-                        "jornada_sabado": jornada_sabado,
-                        "tecnico_domingo": tec_domingo,
-                        "jornada_domingo": jornada_domingo
-                    })
+                    resultados.append(dados_linha)
 
     return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
