@@ -157,7 +157,7 @@ def extrair_dados_plantao_linha(linha):
 
 
 def extrair_dados_matriz_geral(linha):
-    """Extrai os dados para o Resumo com colunas de Sábado e Domingo (Sim / Não)"""
+    """Extrai os dados para o Resumo retornando Sim/Não compatíveis com o front-end"""
     coluna_filial = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
@@ -186,15 +186,14 @@ def extrair_dados_matriz_geral(linha):
         and tec_domingo != ""
     )
 
-    # Define Sim ou Não individualmente para cada dia baseado na regra geral e presença de técnico
     status_sabado = "Sim" if (status_bruto.upper() == "SIM" and tem_tec_sabado) else "Não"
     status_domingo = "Sim" if (status_bruto.upper() == "SIM" and tem_tec_domingo) else "Não"
 
     return {
         "filial": coluna_filial,
         "cidade": coluna_cidade,
-        "status_sabado": status_sabado,
-        "status_domingo": status_domingo,
+        "tecnico_sabado": status_sabado,
+        "tecnico_domingo": status_domingo,
     }
 
 
