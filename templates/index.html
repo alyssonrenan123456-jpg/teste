@@ -13,7 +13,6 @@
             color: #f8fafc;
             min-height: 100vh;
             font-family: 'Outfit', sans-serif;
-            padding-bottom: 90px; /* Espaço para o painel inferior fixo */
         }
 
         .glass-panel {
@@ -80,16 +79,17 @@
         .radar-circle-1 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); }
         .radar-circle-2 { animation: radar-wave 3s infinite cubic-bezier(0.21, 0.53, 0.56, 0.8); animation-delay: 1.5s; }
 
-        /* Estilo do Painel Retrátil Inferior */
-        #painel-retratil {
-            transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out;
-            max-height: 0px;
+        /* Painel Retrátil do canto inferior esquerdo */
+        #painel-ajuda-esq {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            transform: translateY(20px) scale(0.95);
             opacity: 0;
-            overflow: hidden;
+            pointer-events: none;
         }
-        #painel-retratil.ativo {
-            max-height: 350px;
+        #painel-ajuda-esq.ativo {
+            transform: translateY(0) scale(1);
             opacity: 1;
+            pointer-events: auto;
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -109,7 +109,6 @@
                 <span class="text-xs font-semibold tracking-wide text-indigo-300 uppercase">Sistemas Operacionais Ativos</span>
             </div>
 
-            <!-- Botão para o Outro Site -->
             <a href="https://rede-neutra.vercel.app/" target="_blank" class="px-4 py-2 bg-slate-900/80 hover:bg-slate-800 text-indigo-300 hover:text-white border border-slate-700/80 rounded-xl text-xs font-medium transition-all flex items-center gap-2 shadow-sm">
                 <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 Rede Neutra
@@ -183,30 +182,78 @@
         </div>
     </div>
 
-    <!-- PAINEL RETRÁTIL INFERIOR FIXO -->
-    <div class="fixed bottom-0 left-0 right-0 z-45 flex flex-col items-center px-4 pointer-events-none">
-        <div class="w-full max-w-4xl pointer-events-auto">
-            <!-- Conteúdo Retrátil -->
-            <div id="painel-retratil" class="glass-panel rounded-t-3xl border-t border-x border-slate-700/60 p-5 shadow-2xl bg-slate-900/95 mb-0">
-                <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
-                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
-                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        Panorama Regional de Plantão
-                    </h3>
-                    <button onclick="togglePainelRetratil()" class="text-slate-400 hover:text-white p-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+    <!-- BOTÃO FLUTUANTE E PAINEL RETRÁTIL (Canto Inferior Esquerdo) -->
+    <div class="fixed bottom-5 left-5 z-50 flex flex-col items-start">
+        
+        <!-- Painel que sobe ao clicar -->
+        <div id="painel-ajuda-esq" class="glass-panel w-80 sm:w-96 rounded-3xl p-5 shadow-2xl border border-slate-700/80 mb-3 bg-slate-900/95">
+            <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    Instruções & Geração de Mensagem
+                </h4>
+                <button onclick="togglePainelEsquerda()" class="text-slate-400 hover:text-white p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+                <p><strong>1. Verificação:</strong> Pesquise a cidade na aba <em>Plantão / Sobreaviso</em> para verificar se há técnico escalado.</p>
+                <p><strong>2. O.S:</strong> Arraste/encaminhe a O.S para a agenda do técnico correspondente.</p>
+                <p><strong>3. Envio ao Grupo:</strong> Clique no botão <em>"Gerar Mensagem"</em> que aparece no card da cidade para preencher o template automático e enviá-lo ao grupo da cidade.</p>
+            </div>
+        </div>
+
+        <!-- Botão " ?" no canto inferior esquerdo -->
+        <button onclick="togglePainelEsquerda()" class="w-12 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-xl flex items-center justify-center transition-all hover:scale-105 border border-indigo-400/30 text-lg">
+            ?
+        </button>
+    </div>
+
+    <!-- MODAL: Gerar Mensagem para o Grupo -->
+    <div id="modal-mensagem" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+        <div class="glass-panel w-full max-w-lg rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-700/60">
+            <div class="px-6 py-4 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/60">
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    Gerar Mensagem para o Grupo
+                </h3>
+                <button onclick="fecharModalMensagem()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/50 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Cidade / Filial</label>
+                    <input type="text" id="msg-cidade" readonly class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 text-sm">
                 </div>
-                <div id="conteudo-painel-retratil" class="max-h-56 overflow-y-auto space-y-2 pr-1 text-xs">
-                    <div class="text-center py-6 text-slate-400">Clique para carregar o panorama regional...</div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Técnico de Plantão (Detectado)</label>
+                    <input type="text" id="msg-tecnico" readonly class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2.5 text-indigo-300 font-semibold text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Assunto</label>
+                    <input type="text" id="msg-assunto" placeholder="Ex: Instalação / Rompimento / etc..." class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Nome do Cliente</label>
+                    <input type="text" id="msg-cliente" placeholder="Digite o nome do cliente..." class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Prévia da Mensagem</label>
+                    <textarea id="msg-previa" rows="5" readonly class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 text-xs font-mono leading-relaxed resize-none"></textarea>
                 </div>
             </div>
 
-            <!-- Botão Gatilho Inferior -->
-            <div class="flex justify-center pb-3 pt-2">
-                <button onclick="togglePainelRetratil()" class="px-5 py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-2xl text-xs font-semibold shadow-xl transition-all flex items-center gap-2 backdrop-blur-md">
-                    <svg id="icone-seta-painel" class="w-4 h-4 text-indigo-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                    <span id="texto-botao-painel">Panorama por Filial / Regional</span>
+            <div class="px-6 py-4 border-t border-slate-800/80 bg-slate-950/60 flex justify-between items-center">
+                <button onclick="atualizarPreviaMensagem()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all">
+                    Atualizar Prévia
+                </button>
+                <button onclick="copiarMensagemGrupo()" class="px-6 py-2.5 btn-tech-primary text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    Copiar Mensagem
                 </button>
             </div>
         </div>
@@ -243,8 +290,17 @@
     <!-- Scripts -->
     <script>
         let tipoAtual = 'agendamento';
-        let painelRetratilAberto = false;
-        let dadosPanoramaCarregados = false;
+        let painelEsquerdaAberto = false;
+
+        function togglePainelEsquerda() {
+            const painel = document.getElementById('painel-ajuda-esq');
+            painelEsquerdaAberto = !painelEsquerdaAberto;
+            if (painelEsquerdaAberto) {
+                painel.classList.add('ativo');
+            } else {
+                painel.classList.remove('ativo');
+            }
+        }
 
         function atualizarTimestamp() {
             const agora = new Date();
@@ -252,73 +308,6 @@
             const minutos = String(agora.getMinutes()).padStart(2, '0');
             const segundos = String(agora.getSeconds()).padStart(2, '0');
             document.getElementById('ultima-atualizacao').innerText = `${horas}:${minutos}:${segundos}`;
-        }
-
-        async function togglePainelRetratil() {
-            const painel = document.getElementById('painel-retratil');
-            const icone = document.getElementById('icone-seta-painel');
-            painelRetratilAberto = !painelRetratilAberto;
-
-            if (painelRetratilAberto) {
-                painel.classList.add('ativo');
-                icone.style.transform = 'rotate(180deg)';
-                if (!dadosPanoramaCarregados) {
-                    await carregarPanoramaRegional();
-                }
-            } else {
-                painel.classList.remove('ativo');
-                icone.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        async function carregarPanoramaRegional() {
-            const container = document.getElementById('conteudo-painel-retratil');
-            container.innerHTML = `<div class="text-center py-4 text-slate-400">Analisando filiais e sobreavisos...</div>`;
-
-            try {
-                const response = await fetch('/api/buscar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ termo: 'TODAS_AS_CIDADES', tipo: 'plantao' })
-                });
-                const data = await response.json();
-
-                if (!data.sucesso || !data.dados || data.dados.length === 0) {
-                    container.innerHTML = `<div class="text-center py-4 text-slate-400">Nenhum dado encontrado.</div>`;
-                    return;
-                }
-
-                // Agrupa por Filial (ex: "01 - MCA", "02 - RSL", etc.)
-                const grupos = {};
-                data.dados.forEach(item => {
-                    const filial = item.filial || 'Outros';
-                    if (!grupos[filial]) {
-                        grupos[filial] = { total: 0, ativos: 0 };
-                    }
-                    grupos[filial].total += 1;
-                    if (item.status.toUpperCase() === 'SIM') {
-                        grupos[filial].ativos += 1;
-                    }
-                });
-
-                let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">';
-                for (const [filial, info] of Object.entries(grupos)) {
-                    html += `
-                        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex justify-between items-center">
-                            <span class="font-medium text-slate-200 truncate pr-2">${filial}</span>
-                            <span class="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-lg border border-indigo-500/20 font-medium whitespace-nowrap">
-                                ${info.ativos} de ${info.total} com sobreaviso
-                            </span>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-
-                container.innerHTML = html;
-                dadosPanoramaCarregados = true;
-            } catch (err) {
-                container.innerHTML = `<div class="text-center py-4 text-rose-400">Erro ao carregar o panorama regional.</div>`;
-            }
         }
 
         function setTipo(tipo) {
@@ -408,6 +397,8 @@
                         const temSab = item.tecnico_sabado && item.tecnico_sabado !== 'Nenhum técnico escalado' && item.tecnico_sabado !== 'NENHUMA OPÇÃO';
                         const temDom = item.tecnico_domingo && item.tecnico_domingo !== 'Nenhum técnico escalado' && item.tecnico_domingo !== 'NENHUMA OPÇÃO';
                         const temSobreaviso = item.status.toUpperCase() === 'SIM';
+                        
+                        let tecnicoPlantao = temSab ? item.tecnico_sabado : (temDom ? item.tecnico_domingo : 'Nenhum técnico escalado');
 
                         html += `
                             <div class="card-item rounded-2xl p-5 shadow-lg">
@@ -416,9 +407,17 @@
                                         <h2 class="text-base font-semibold text-white">${item.filial}</h2>
                                         <p class="text-xs text-indigo-300 font-medium">${item.cidade}</p>
                                     </div>
-                                    <span class="text-xs px-3 py-1 ${temSobreaviso ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} rounded-xl font-medium border">
-                                        Sobreaviso: ${item.status}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs px-3 py-1 ${temSobreaviso ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} rounded-xl font-medium border">
+                                            Sobreaviso: ${item.status}
+                                        </span>
+                                        ${temSobreaviso ? `
+                                            <button onclick="abrirModalMensagem('${item.cidade.replace(/'/g, "\\'")}', '${tecnicoPlantao.replace(/'/g, "\\'")}')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                                Gerar Mensagem
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs md:text-sm">
                                     <div class="bg-slate-950/60 p-3.5 rounded-xl border ${temSab ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800/60'}">
@@ -452,6 +451,43 @@
                 loading.classList.add('hidden');
                 container.innerHTML = `<div class="card-item p-5 rounded-2xl text-center text-rose-400 text-sm font-medium">Erro ao comunicar com o servidor.</div>`;
             }
+        }
+
+        function abrirModalMensagem(cidade, tecnico) {
+            document.getElementById('msg-cidade').value = cidade;
+            document.getElementById('msg-tecnico').value = tecnico;
+            document.getElementById('msg-assunto').value = '';
+            document.getElementById('msg-cliente').value = '';
+            atualizarPreviaMensagem();
+            document.getElementById('modal-mensagem').classList.remove('hidden');
+        }
+
+        function fecharModalMensagem() {
+            document.getElementById('modal-mensagem').classList.add('hidden');
+        }
+
+        function atualizarPreviaMensagem() {
+            const cidade = document.getElementById('msg-cidade').value || '[Cidade]';
+            const tecnico = document.getElementById('msg-tecnico').value || '[Técnico]';
+            const assunto = document.getElementById('msg-assunto').value.trim() || '[Assunto]';
+            const cliente = document.getElementById('msg-cliente').value.trim() || '[nome do cliente]';
+
+            const textoFinal = `AGENDAMENTO - ${assunto}\n\nCidade: ${cidade}\nCliente: ${cliente}\nTécnico: ${tecnico}`;
+            document.getElementById('msg-previa').value = textoFinal;
+        }
+
+        function copiarMensagemGrupo() {
+            atualizarPreviaMensagem();
+            const previa = document.getElementById('msg-previa');
+            previa.select();
+            previa.setSelectionRange(0, 99999);
+
+            navigator.clipboard.writeText(previa.value).then(() => {
+                alert('Mensagem copiada para a área de transferência com sucesso! 📋');
+                fecharModalMensagem();
+            }).catch(err => {
+                alert('Erro ao copiar mensagem.');
+            });
         }
 
         async function abrirResumoPlantao() {
@@ -501,7 +537,7 @@
                                 ${temSab ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
                             </td>
                             <td class="p-4 text-center">
-                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
+                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-semibold border border-slate-800 inline-block">Não</span>'}
                             </td>
                         </tr>
                     `;
