@@ -71,13 +71,40 @@
             animation: soft-pulse 2.5s infinite ease-in-out;
         }
 
+        /* Animações do Deserto (Cacto e Tumbleweed) */
+        @keyframes growCactus {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes tumbleweedMove {
+            0% { transform: translateX(-150px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(350px) rotate(720deg); opacity: 0; }
+        }
+
+        .anim-cacto {
+            animation: growCactus 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .anim-mato {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            font-size: 24px;
+            animation: tumbleweedMove 4s linear infinite;
+            pointer-events: none;
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
         ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
     </style>
 </head>
-<body class="p-4 md:p-10 flex flex-col items-center" onload="carregarAvisos()">
+<body class="p-4 md:p-10 flex flex-col items-center">
 
     <div class="w-full max-w-4xl">
         
@@ -140,9 +167,19 @@
             <p class="text-slate-400 mt-3 text-xs tracking-wide">CONSULTANDO DADOS...</p>
         </div>
 
-        <!-- Resultados / Quadro de Avisos (Problemas Massivos) -->
+        <!-- Resultados (Com animação de ociosidade/deserto) -->
         <div id="resultados-container" class="space-y-4">
-            <!-- Será preenchido automaticamente ao carregar a página -->
+            <div id="idle-state" class="relative overflow-hidden text-center py-16 px-4 border border-dashed border-slate-800/80 rounded-3xl bg-slate-950/30 transition-all">
+                <!-- Elemento do Cacto (Aparece após alguns segundos parado) -->
+                <div id="container-cacto" class="hidden mb-3">
+                    <span class="text-4xl anim-cacto inline-block cursor-pointer" title="Psiu... Vai pesquisar alguma coisa!" onclick="fazerCactoPiscar()">🌵</span>
+                </div>
+                <!-- Bola de mato rolando do deserto (Tumbleweed) -->
+                <div id="container-mato"></div>
+
+                <svg id="icone-padrao" class="w-10 h-10 mx-auto text-slate-600 mb-2 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                <p id="texto-ocioso" class="text-sm font-medium text-slate-500 transition-all">Digite uma cidade ou filial acima para visualizar as informações.</p>
+            </div>
         </div>
     </div>
 
@@ -177,6 +214,63 @@
     <!-- Scripts -->
     <script>
         let tipoAtual = 'agendamento';
+        let idleTimer = null;
+        let isDesertoAtivo = false;
+
+        // Gerenciador de ociosidade (Ativa o deserto após 8 segundos sem pesquisar nada)
+        function resetarIdleTimer() {
+            clearTimeout(idleTimer);
+            reremoverDeserto();
+            
+            idleTimer = setTimeout(() => {
+                ativarModoDeserto();
+            }, 180000); // 3 minutos de inatividade
+        }
+
+        function ativarModoDeserto() {
+            const containerCacto = document.getElementById('container-cacto');
+            const containerMato = document.getElementById('container-mato');
+            const textoOcioso = document.getElementById('texto-ocioso');
+            const iconePadrao = document.getElementById('icone-padrao');
+
+            if (!containerCacto || isDesertoAtivo) return;
+            isDesertoAtivo = true;
+
+            containerCacto.classList.remove('hidden');
+            if (iconePadrao) iconePadrao.style.opacity = '0.3';
+            if (textoOcioso) textoOcioso.innerHTML = "<i>Muito silêncio por aqui... O cacto tá crescendo esperando você pesquisar algo. 🌵</i>";
+
+            // Cria o matinho rolando (tumbleweed) periodicamente
+            window.matoInterval = setInterval(() => {
+                const mato = document.createElement('div');
+                mato.className = 'anim-mato';
+                mato.innerText = '🌾';
+                containerMato.appendChild(mato);
+                setTimeout(() => mato.remove(), 4000);
+            }, 2500);
+        }
+
+        function reremoverDeserto() {
+            isDesertoAtivo = false;
+            clearInterval(window.matoInterval);
+            const containerCacto = document.getElementById('container-cacto');
+            const containerMato = document.getElementById('container-mato');
+            const textoOcioso = document.getElementById('texto-ocioso');
+            const iconePadrao = document.getElementById('icone-padrao');
+
+            if (containerCacto) containerCacto.classList.add('hidden');
+            if (containerMato) containerMato.innerHTML = '';
+            if (iconePadrao) iconePadrao.style.opacity = '1';
+            if (textoOcioso) textoOcioso.innerText = "Digite uma cidade ou filial acima para visualizar as informações.";
+        }
+
+        function fazerCactoPiscar() {
+            alert("🌵 O cacto disse: 'Ei, digita logo uma cidade aí no campo de busca!'");
+        }
+
+        // Monitora digitação para resetar o tempo de ociosidade
+        document.getElementById('termo-busca').addEventListener('input', resetarIdleTimer);
+        window.onload = resetarIdleTimer;
 
         function atualizarTimestamp() {
             const agora = new Date();
@@ -186,73 +280,9 @@
             document.getElementById('ultima-atualizacao').innerText = `${horas}:${minutos}:${segundos}`;
         }
 
-        async function carregarAvisos() {
-            const container = document.getElementById('resultados-container');
-            container.innerHTML = `<div class="glass-panel rounded-3xl p-6 text-center text-slate-400 text-sm">Carregando Problemas Massivos...</div>`;
-
-            try {
-                const response = await fetch('/api/avisos');
-                const data = await response.json();
-
-                if (!data.sucesso || !data.avisos || data.avisos.length === 0) {
-                    container.innerHTML = `
-                        <div class="glass-panel rounded-3xl p-6 text-center text-slate-400 border border-slate-800">
-                            Nenhum problema massivo reportado no momento. 🎉
-                        </div>
-                    `;
-                    return;
-                }
-
-                let tabelaHtml = `
-                    <div class="glass-panel rounded-3xl p-6 md:p-8 border border-slate-700/60 shadow-xl">
-                        <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
-                            Problemas Massivos
-                        </h2>
-                        <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
-                            <table class="w-full text-left border-collapse text-xs md:text-sm">
-                                <thead>
-                                    <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/80 font-medium">
-                                        <th class="p-4">Causa</th>
-                                        <th class="p-4">Projetos Afetados</th>
-                                        <th class="p-4">Situação</th>
-                                        <th class="p-4">Previsão de retorno</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800/60">
-                `;
-
-                data.avisos.forEach(aviso => {
-                    // Identifica cor da causa baseada no texto (Rompimento = Vermelho, Manutenção = Laranja)
-                    const causaUpper = (aviso.causa || '').toUpperCase();
-                    let estiloCausa = 'bg-slate-800 text-slate-200';
-                    if (causaUpper.includes('ROMPIMENTO')) {
-                        estiloCausa = 'bg-rose-700 text-white font-semibold shadow-md';
-                    } else if (causaUpper.includes('MANUTENÇÃO') || causaUpper.includes('MANUTENCAO')) {
-                        estiloCausa = 'bg-amber-600 text-white font-semibold shadow-md';
-                    }
-
-                    tabelaHtml += `
-                        <tr class="hover:bg-slate-900/40 transition-colors">
-                            <td class="p-4">
-                                <span class="px-3 py-1.5 rounded-xl inline-block ${estiloCausa}">${aviso.causa || '-'}</span>
-                            </td>
-                            <td class="p-4 text-slate-200 font-medium">${aviso.projetos || aviso.projetosAfetados || '-'}</td>
-                            <td class="p-4 text-slate-300">${aviso.situacao || '-'}</td>
-                            <td class="p-4 text-slate-300">${aviso.previsao || aviso.previsaoRetorno || '-'}</td>
-                        </tr>
-                    `;
-                });
-
-                tabelaHtml += `</tbody></table></div></div>`;
-                container.innerHTML = tabelaHtml;
-            } catch (err) {
-                container.innerHTML = `<div class="glass-panel rounded-3xl p-6 text-center text-rose-400 text-sm">Erro ao carregar o quadro de avisos.</div>`;
-            }
-        }
-
         function setTipo(tipo) {
             tipoAtual = tipo;
+            resetarIdleTimer();
             const btnAgendamento = document.getElementById('btn-agendamento');
             const btnPlantao = document.getElementById('btn-plantao');
             const inputTermo = document.getElementById('termo-busca');
@@ -278,6 +308,7 @@
                 return;
             }
 
+            reremoverDeserto();
             loading.classList.remove('hidden');
             container.innerHTML = '';
 
