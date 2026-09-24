@@ -346,10 +346,9 @@ def buscar():
         if termo_lower == "todas_as_cidades":
             for linha in linhas:
                 if len(linha) > 1:
-                    f = linha[0].strip()
                     c = linha[1].strip()
-                    if f and f.upper() not in [
-                        "FILIAL",
+                    if c and c.upper() not in [
+                        "CIDADE",
                         ":-:",
                         "",
                         "SEGUNDA-FEIRA",
@@ -407,8 +406,8 @@ def buscar():
                 coluna_filial = linha[0].strip()
                 coluna_cidade = linha[1].strip()
 
-                if coluna_filial.upper() in [
-                    "FILIAL",
+                if coluna_cidade.upper() in [
+                    "CIDADE",
                     ":-:",
                     "",
                     "SEGUNDA-FEIRA",
@@ -418,7 +417,6 @@ def buscar():
 
                 if e_busca_filial:
                     dados_linha = extrair_dados_plantao_linha(linha)
-                    # Pesquisa por Filial: exibe SOMENTE as cidades da filial que têm sobreaviso real
                     if (
                         coluna_filial in filiais_encontradas
                         and dados_linha["tem_tecnico_real"]
@@ -426,7 +424,6 @@ def buscar():
                         resultados.append(dados_linha)
                 elif e_busca_cidade:
                     dados_linha = extrair_dados_plantao_linha(linha)
-                    # Pesquisa por Cidade Específica: exibe mesmo que não tenha sobreaviso
                     if coluna_cidade in cidades_encontradas:
                         resultados.append(dados_linha)
 
