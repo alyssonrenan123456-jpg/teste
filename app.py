@@ -86,7 +86,7 @@ def buscar():
             resultados.append(cidades_map[c])
 
     else:
-        # PLANTAO: Varredura robusta para capturar 100% das filiais (incluindo códigos 1002, 1063, etc.)
+        # PLANTAO: Coleta filiais e cidades de forma robusta
         filiais_disponiveis = []
         cidades_disponiveis = []
         
@@ -94,7 +94,6 @@ def buscar():
             if len(linha) > 1:
                 f = linha[0].strip()
                 c = linha[1].strip()
-                # Valida se a linha contém dados reais de filial
                 if f and f.upper() not in ["FILIAL", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
                     filiais_disponiveis.append(f)
                 if c and c.upper() not in ["CIDADE", ":-:", "", "SEGUNDA-FEIRA", "TÉCNICO RESPONSÁVEL"]:
@@ -103,26 +102,26 @@ def buscar():
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Filtro flexível para encontrar filiais por trecho ou número (ex: "1002", "EVV", "01")
+        # CORREÇÃO: Verifica correspondência por trecho em qualquer parte da string da filial (ex: "rsl" em "02 - RSL")
         filiais_encontradas = [f for f in filiais_disponiveis if termo_lower in f.lower()]
         cidades_encontradas = [c for c in cidades_disponiveis if termo_lower in c.lower()]
 
         e_busca_filial = False
         e_busca_cidade = False
 
+        # Se encontrou nas filiais, prioriza a busca por filial (resolve siglas como rsl, jba, blu, ant, sct, rdc, bve, itp, jve)
         if filiais_encontradas:
             e_busca_filial = True
         elif cidades_encontradas:
             e_busca_cidade = True
         else:
-            # Busca fuzzy inteligente para tolerar erros de digitação e variações de código
             match_filial = process.extractOne(termo, filiais_disponiveis, scorer=fuzz.WRatio) if filiais_disponiveis else None
             match_cidade = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio) if cidades_disponiveis else None
 
             score_filial = match_filial[1] if match_filial else 0
             score_cidade = match_cidade[1] if match_cidade else 0
 
-            if score_filial >= 50 and score_filial >= score_cidade:
+            if score_filial >= 45 and score_filial >= score_cidade:
                 filiais_encontradas = [match_filial[0]]
                 e_busca_filial = True
             elif score_cidade >= 60:
@@ -144,7 +143,6 @@ def buscar():
 
                 status = linha[3].strip() if len(linha) > 3 else "-"
 
-                # Extração segura dos técnicos de Sábado e Domingo nas colunas correspondentes
                 tec_sabado = linha[14].strip() if len(linha) > 14 and linha[14].strip() else "Nenhum técnico escalado"
                 jornada_sabado = linha[15].strip() if len(linha) > 15 and linha[15].strip() else "-"
                 tec_domingo = linha[16].strip() if len(linha) > 16 and linha[16].strip() else "Nenhum técnico escalado"
