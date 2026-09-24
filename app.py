@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # URLs de exportação direta em CSV das duas planilhas do Google Sheets
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/1yOw71rZ_ex3hOCTCGSEHGMfoqlB2RrG6zbBDCkPKQyA/edit?hl=pt-br&gid=0#gid=0"
 
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
