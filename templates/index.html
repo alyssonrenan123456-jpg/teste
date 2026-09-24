@@ -476,7 +476,6 @@
             const cidade = document.getElementById('msg-cidade').value || '[Cidade]';
             const tecnico = document.getElementById('msg-tecnico').value || '[Técnico]';
             
-            // Força conversão para maiúsculo
             const assunto = document.getElementById('msg-assunto').value.trim().toUpperCase() || '[ASSUNTO]';
             const cliente = document.getElementById('msg-cliente').value.trim().toUpperCase() || '[NOME DO CLIENTE]';
 
@@ -493,12 +492,8 @@
             navigator.clipboard.writeText(previa.value).then(() => {
                 const feedback = document.getElementById('feedback-copia');
                 feedback.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    fecharModalMensagem();
-                }, 1200);
             }).catch(err => {
-                console.error('Erro ao copiar', err);
+                alert('Erro ao copiar texto.');
             });
         }
 
@@ -506,60 +501,43 @@
             const modal = document.getElementById('modal-resumo');
             const conteudo = document.getElementById('modal-conteudo');
             modal.classList.remove('hidden');
-            conteudo.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2"></div><br>Sincronizando matriz completa...</div>`;
+            conteudo.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando matriz de plantões...</div>';
 
             try {
                 const response = await fetch('/api/buscar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ termo: 'TODAS_AS_CIDADES', tipo: 'plantao' })
+                    body: JSON.stringify({ termo: 'todas_as_cidades', tipo: 'plantao' })
                 });
                 const data = await response.json();
-                atualizarTimestamp();
 
                 if (!data.sucesso || data.dados.length === 0) {
-                    conteudo.innerHTML = `<div class="text-center py-6 text-slate-400 text-sm font-medium">Nenhum dado encontrado.</div>`;
+                    conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Não foi possível carregar o resumo.</div>';
                     return;
                 }
 
-                let tabelaHtml = `
-                    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
-                        <table class="w-full text-left border-collapse text-xs md:text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/80 font-medium">
-                                    <th class="p-4">Filial / Cidade</th>
-                                    <th class="p-4 text-center">Sábado</th>
-                                    <th class="p-4 text-center">Domingo</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/50">
-                `;
-
+                let html = '<div class="space-y-2">';
                 data.dados.forEach(item => {
-                    const temSab = item.tecnico_sabado && item.tecnico_sabado !== 'Nenhum técnico escalado' && item.tecnico_sabado !== 'NENHUMA OPÇÃO';
-                    const temDom = item.tecnico_domingo && item.tecnico_domingo !== 'Nenhum técnico escalado' && item.tecnico_domingo !== 'NENHUMA OPÇÃO';
-
-                    tabelaHtml += `
-                        <tr class="hover:bg-slate-900/40 transition-colors">
-                            <td class="p-4">
-                                <span class="font-medium text-white block text-sm">${item.cidade}</span>
-                                <span class="text-xs text-indigo-400 font-medium">${item.filial}</span>
-                            </td>
-                            <td class="p-4 text-center">
-                                ${temSab ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
-                            </td>
-                            <td class="p-4 text-center">
-                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
-                            </td>
-                        </tr>
-                    `;
+                    const temSobreaviso = item.status.toUpperCase() === 'SIM';
+                    if (temSobreaviso) {
+                        html += `
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div>
+                                    <span class="text-xs font-bold text-indigo-400">${item.filial}</span>
+                                    <h4 class="text-sm font-semibold text-white">${item.cidade}</h4>
+                                </div>
+                                <div class="text-xs text-slate-300 space-y-0.5 sm:text-right">
+                                    <div><strong>Sáb:</strong> ${item.tecnico_sabado}</div>
+                                    <div><strong>Dom:</strong> ${item.tecnico_domingo}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
                 });
-
-                tabelaHtml += `</tbody></table></div>`;
-                conteudo.innerHTML = tabelaHtml;
-
-            } catch (e) {
-                conteudo.innerHTML = `<div class="text-center py-6 text-rose-400 text-sm font-medium">Erro ao carregar a matriz.</div>`;
+                html += '</div>';
+                conteudo.innerHTML = html;
+            } catch (err) {
+                conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro ao buscar dados do resumo.</div>';
             }
         }
 
