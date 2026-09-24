@@ -161,23 +161,24 @@ def extrair_dados_plantao_linha(linha):
 
 @app.route("/")
 def index():
-    ip_cliente = request.headers.get("X-Forwarded-For", request.remote_addr)
-    if ip_cliente and "," in ip_cliente:
-        ip_cliente = ip_cliente.split(",")[0].strip()
+    ip_cliente = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if not ip_cliente:
+        ip_cliente = request.remote_addr
 
+    print(f"--- IP DETECTADO NO ACESSO: {ip_cliente} ---")
     autorizado = ip_cliente in IPS_AUTORIZADOS
     return render_template("index.html", autorizado=autorizado)
 
 
 @app.route("/api/escala-futura", methods=["GET"])
 def escala_futura():
-    ip_cliente = request.headers.get("X-Forwarded-For", request.remote_addr)
-    if ip_cliente and "," in ip_cliente:
-        ip_cliente = ip_cliente.split(",")[0].strip()
+    ip_cliente = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if not ip_cliente:
+        ip_cliente = request.remote_addr
 
     if ip_cliente not in IPS_AUTORIZADOS:
         return (
-            jsonify({"sucesso": False, "erro": "Acesso restrito a IPs autorizados."}),
+            jsonify({"sucesso": False, "erro": f"Acesso restrito. IP detetado: {ip_cliente}"}),
             403,
         )
 
@@ -221,9 +222,6 @@ def buscar():
     termo_lower = termo.lower()
     resultados = []
 
-    # ==========================================
-    # 1. ABA AGENDAMENTO
-    # ==========================================
     if tipo == "agendamento":
         cidades_map = {}
         for linha in linhas:
@@ -289,9 +287,6 @@ def buscar():
             if c in cidades_map:
                 resultados.append(cidades_map[c])
 
-    # ==========================================
-    # 2. ABA PLANTÃO
-    # ==========================================
     else:
         filiais_disponiveis = []
         cidades_disponiveis = []
