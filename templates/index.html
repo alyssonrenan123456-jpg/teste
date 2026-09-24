@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendamentos & Sobreavisos | Nexus Core</title>
+    <title>Agendamentos & Sobreavisos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
@@ -15,7 +15,6 @@
             font-family: 'Outfit', sans-serif;
         }
 
-        /* Efeito de Vidro Fosco Elegante (Glassmorphism Suave) */
         .glass-panel {
             background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(16px);
@@ -37,7 +36,6 @@
             box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
         }
 
-        /* Botão com Gradiente Tecnológico Sofisticado */
         .btn-tech-primary {
             background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
@@ -65,13 +63,39 @@
             backdrop-filter: blur(8px);
         }
 
-        /* Pulso de Status Discreto e Elegante */
         @keyframes soft-pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(0.95); }
         }
         .status-pulse {
             animation: soft-pulse 2.5s infinite ease-in-out;
+        }
+
+        /* Animações do Deserto (Cacto e Tumbleweed) */
+        @keyframes growCactus {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes tumbleweedMove {
+            0% { transform: translateX(-150px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(350px) rotate(720deg); opacity: 0; }
+        }
+
+        .anim-cacto {
+            animation: growCactus 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .anim-mato {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            font-size: 24px;
+            animation: tumbleweedMove 4s linear infinite;
+            pointer-events: none;
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -84,17 +108,18 @@
 
     <div class="w-full max-w-4xl">
         
-        <!-- Cabeçalho Elegante e Tecnológico -->
+        <!-- Cabeçalho -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 rounded-full mb-3 border border-indigo-500/25">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 status-pulse inline-block"></span>
+                <span class="text-xs font-semibold tracking-wide text-indigo-300 uppercase">Sistemas Operacionais Ativos</span>
             </div>
             <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white">
                 Agendamentos & Sobreavisos
             </h1>
             <p class="text-slate-400 mt-1.5 text-sm md:text-base font-light">Gerenciamento de agendamentos e escalas de plantão.</p>
             
-            <!-- Indicador Elegante da Última Atualização -->
+            <!-- Indicador da Última Atualização -->
             <div class="mt-4 inline-flex items-center gap-2 text-xs text-slate-300 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 shadow-sm">
                 <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 <span>Última sincronização com a planilha: <strong id="ultima-atualizacao" class="text-white font-medium">Agora mesmo</strong></span>
@@ -142,11 +167,18 @@
             <p class="text-slate-400 mt-3 text-xs tracking-wide">CONSULTANDO DADOS...</p>
         </div>
 
-        <!-- Resultados -->
+        <!-- Resultados (Com animação de ociosidade/deserto) -->
         <div id="resultados-container" class="space-y-4">
-            <div class="text-center py-16 text-slate-500 border border-dashed border-slate-800/80 rounded-3xl bg-slate-950/30">
-                <svg class="w-10 h-10 mx-auto text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                <p class="text-sm font-medium">Digite uma cidade ou filial acima para visualizar as informações.</p>
+            <div id="idle-state" class="relative overflow-hidden text-center py-16 px-4 border border-dashed border-slate-800/80 rounded-3xl bg-slate-950/30 transition-all">
+                <!-- Elemento do Cacto (Aparece após alguns segundos parado) -->
+                <div id="container-cacto" class="hidden mb-3">
+                    <span class="text-4xl anim-cacto inline-block cursor-pointer" title="Psiu... Vai pesquisar alguma coisa!" onclick="fazerCactoPiscar()">🌵</span>
+                </div>
+                <!-- Bola de mato rolando do deserto (Tumbleweed) -->
+                <div id="container-mato"></div>
+
+                <svg id="icone-padrao" class="w-10 h-10 mx-auto text-slate-600 mb-2 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                <p id="texto-ocioso" class="text-sm font-medium text-slate-500 transition-all">Digite uma cidade ou filial acima para visualizar as informações.</p>
             </div>
         </div>
     </div>
@@ -182,6 +214,63 @@
     <!-- Scripts -->
     <script>
         let tipoAtual = 'agendamento';
+        let idleTimer = null;
+        let isDesertoAtivo = false;
+
+        // Gerenciador de ociosidade (Ativa o deserto após 8 segundos sem pesquisar nada)
+        function resetarIdleTimer() {
+            clearTimeout(idleTimer);
+            reremoverDeserto();
+            
+            idleTimer = setTimeout(() => {
+                ativarModoDeserto();
+            }, 8000); // 8 segundos de inatividade
+        }
+
+        function ativarModoDeserto() {
+            const containerCacto = document.getElementById('container-cacto');
+            const containerMato = document.getElementById('container-mato');
+            const textoOcioso = document.getElementById('texto-ocioso');
+            const iconePadrao = document.getElementById('icone-padrao');
+
+            if (!containerCacto || isDesertoAtivo) return;
+            isDesertoAtivo = true;
+
+            containerCacto.classList.remove('hidden');
+            if (iconePadrao) iconePadrao.style.opacity = '0.3';
+            if (textoOcioso) textoOcioso.innerHTML = "<i>Muito silêncio por aqui... O cacto tá crescendo esperando você pesquisar algo. 🌵</i>";
+
+            // Cria o matinho rolando (tumbleweed) periodicamente
+            window.matoInterval = setInterval(() => {
+                const mato = document.createElement('div');
+                mato.className = 'anim-mato';
+                mato.innerText = '🌾';
+                containerMato.appendChild(mato);
+                setTimeout(() => mato.remove(), 4000);
+            }, 2500);
+        }
+
+        function reremoverDeserto() {
+            isDesertoAtivo = false;
+            clearInterval(window.matoInterval);
+            const containerCacto = document.getElementById('container-cacto');
+            const containerMato = document.getElementById('container-mato');
+            const textoOcioso = document.getElementById('texto-ocioso');
+            const iconePadrao = document.getElementById('icone-padrao');
+
+            if (containerCacto) containerCacto.classList.add('hidden');
+            if (containerMato) containerMato.innerHTML = '';
+            if (iconePadrao) iconePadrao.style.opacity = '1';
+            if (textoOcioso) textoOcioso.innerText = "Digite uma cidade ou filial acima para visualizar as informações.";
+        }
+
+        function fazerCactoPiscar() {
+            alert("🌵 O cacto disse: 'Ei, digita logo uma cidade aí no campo de busca!'");
+        }
+
+        // Monitora digitação para resetar o tempo de ociosidade
+        document.getElementById('termo-busca').addEventListener('input', resetarIdleTimer);
+        window.onload = resetarIdleTimer;
 
         function atualizarTimestamp() {
             const agora = new Date();
@@ -193,6 +282,7 @@
 
         function setTipo(tipo) {
             tipoAtual = tipo;
+            resetarIdleTimer();
             const btnAgendamento = document.getElementById('btn-agendamento');
             const btnPlantao = document.getElementById('btn-plantao');
             const inputTermo = document.getElementById('termo-busca');
@@ -218,6 +308,7 @@
                 return;
             }
 
+            reremoverDeserto();
             loading.classList.remove('hidden');
             container.innerHTML = '';
 
