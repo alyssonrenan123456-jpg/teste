@@ -3,151 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Operacional | Gestão</title>
+    <title>Painel Operacional | Nexus Core</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
         body {
-            background-color: #0b0f19;
-            color: #f1f5f9;
+            background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #0b1120 100%);
+            color: #f8fafc;
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Outfit', sans-serif;
         }
 
-        /* Cartão com estilo moderno corporativo e profundidade sutil */
-        .modern-card {
-            background: #111827;
-            border: 1px solid #1f2937;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
-            transition: all 0.2s ease-in-out;
+        /* Efeito de Vidro Fosco Elegante (Glassmorphism Suave) */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         }
 
-        .modern-card:hover {
-            border-color: #374151;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        .card-item {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .dashboard-container {
-            background: #0d1322;
-            border: 1px solid #1e293b;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        .card-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Botão com Gradiente Tecnológico Sofisticado */
+        .btn-tech-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+            transition: all 0.3s ease;
+        }
+        .btn-tech-primary:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-tech-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-tech-success:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            transform: translateY(-1px);
         }
 
         .modal-overlay {
-            background: rgba(3, 7, 18, 0.75);
-            backdrop-filter: blur(6px);
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(8px);
         }
 
-        /* Indicador de status suave */
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        /* Pulso de Status Discreto e Elegante */
+        @keyframes soft-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.95); }
+        }
+        .status-pulse {
+            animation: soft-pulse 2.5s infinite ease-in-out;
         }
 
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0f19; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
     </style>
 </head>
-<body class="p-4 md:p-8 flex flex-col items-center">
+<body class="p-4 md:p-10 flex flex-col items-center">
 
     <div class="w-full max-w-4xl">
-        <!-- Cabeçalho Moderno -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 border-b border-slate-800 pb-6">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-                    <span class="p-2.5 bg-indigo-600/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    </span>
-                    Painel Operacional
-                </h1>
-                <p class="text-slate-400 text-xs md:text-sm mt-1">Central de consultas para agendamentos e sobreavisos.</p>
+        
+        <!-- Cabeçalho Elegante e Tecnológico -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 rounded-full mb-3 border border-indigo-500/25">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 status-pulse inline-block"></span>
+                <span class="text-xs font-semibold tracking-wide text-indigo-300 uppercase">Sistemas Operacionais Ativos</span>
             </div>
-
-            <!-- Informação da Última Atualização -->
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl text-xs text-slate-300 shadow-sm">
-                <span class="status-dot"></span>
-                <span>Última sincronização: <strong id="ultima-atualizacao" class="text-white font-medium">Agora mesmo</strong></span>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                Painel Operacional
+            </h1>
+            <p class="text-slate-400 mt-1.5 text-sm md:text-base font-light">Gerenciamento inteligente de agendamentos e escalas de plantão.</p>
+            
+            <!-- Indicador Elegante da Última Atualização -->
+            <div class="mt-4 inline-flex items-center gap-2 text-xs text-slate-300 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 shadow-sm">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span>Última sincronização da planilha: <strong id="ultima-atualizacao" class="text-white font-medium">Agora mesmo</strong></span>
             </div>
         </div>
 
-        <!-- Dashboard Container -->
-        <div class="dashboard-container rounded-2xl p-6 md:p-8 mb-8">
+        <!-- Painel Central Principal -->
+        <div class="glass-panel rounded-3xl p-6 md:p-8 mb-8">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-                <!-- Abas de Alternância -->
-                <div class="flex bg-slate-900 p-1 rounded-xl w-full sm:w-auto border border-slate-800">
-                    <button id="btn-agendamento" onclick="setTipo('agendamento')" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all bg-indigo-600 text-white shadow-sm">
+                
+                <!-- Abas Estilizadas -->
+                <div class="flex bg-slate-950/60 p-1 rounded-2xl w-full sm:w-auto border border-slate-800/80">
+                    <button id="btn-agendamento" onclick="setTipo('agendamento')" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all btn-tech-primary text-white">
                         Agendamentos
                     </button>
-                    <button id="btn-plantao" onclick="setTipo('plantao')" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-slate-400 hover:text-white">
+                    <button id="btn-plantao" onclick="setTipo('plantao')" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all text-slate-400 hover:text-white">
                         Plantão / Sobreaviso
                     </button>
                 </div>
 
-                <!-- Botão Resumo Fim de Semana -->
-                <button onclick="abrirResumoPlantao()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-medium text-xs md:text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center justify-center gap-2 shadow-sm">
+                <!-- Botão de Resumo -->
+                <button onclick="abrirResumoPlantao()" class="w-full sm:w-auto px-5 py-2.5 rounded-2xl font-semibold text-xs md:text-sm btn-tech-success text-white transition-all flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"></path></svg>
                     Resumo do Fim de Semana
                 </button>
             </div>
 
-            <!-- Campo de Busca -->
+            <!-- Caixa de Pesquisa -->
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </span>
-                    <input type="text" id="termo-busca" placeholder="Digite a cidade ou sigla (ex: rsl, bnu, jba)..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all" onkeypress="if(event.key === 'Enter') realizarBusca()">
+                    <input type="text" id="termo-busca" placeholder="Digite a cidade ou sigla (ex: rsl, bnu, jba)..." class="w-full bg-slate-950/70 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm transition-all" onkeypress="if(event.key === 'Enter') realizarBusca()">
                 </div>
-                <button onclick="realizarBusca()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-sm">
+                <button onclick="realizarBusca()" class="px-7 py-3 btn-tech-primary text-white font-semibold rounded-2xl transition-all text-sm flex items-center justify-center gap-2">
                     Pesquisar
                 </button>
             </div>
         </div>
 
-        <!-- Carregando -->
+        <!-- Indicador de Carregamento -->
         <div id="loading" class="hidden text-center py-12">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-indigo-500 border-t-transparent"></div>
-            <p class="text-slate-400 mt-3 text-xs font-medium">Buscando informações...</p>
+            <p class="text-slate-400 mt-3 text-xs tracking-wide">CONSULTANDO DADOS...</p>
         </div>
 
         <!-- Resultados -->
         <div id="resultados-container" class="space-y-4">
-            <div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-2xl bg-slate-900/40">
+            <div class="text-center py-16 text-slate-500 border border-dashed border-slate-800/80 rounded-3xl bg-slate-950/30">
                 <svg class="w-10 h-10 mx-auto text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                <p class="text-sm font-medium">Nenhuma pesquisa realizada. Insira uma cidade ou filial acima.</p>
+                <p class="text-sm font-medium">Digite uma cidade ou filial acima para visualizar as informações.</p>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Resumo de Plantão -->
+    <!-- MODAL: Resumo de Fim de Semana -->
     <div id="modal-resumo" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
-        <div class="modern-card w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/60">
+        <div class="glass-panel w-full max-w-3xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-700/60">
+            <div class="px-6 py-4 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/60">
                 <div>
                     <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                        <span class="status-dot"></span>
-                        Escala Geral de Plantão - Fim de Semana
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 status-pulse inline-block"></span>
+                        Matriz Geral de Plantão (Fim de Semana)
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Listagem completa de todas as cidades e status de plantão</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Visão consolidada de todas as localidades</p>
                 </div>
-                <button onclick="fecharResumoPlantao()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+                <button onclick="fecharResumoPlantao()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/50 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
 
             <div class="p-6 overflow-y-auto flex-1 space-y-3" id="modal-conteudo">
-                <div class="text-center py-10 text-slate-400 text-sm">Carregando dados...</div>
+                <div class="text-center py-10 text-slate-400 text-sm">Carregando matriz...</div>
             </div>
 
-            <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/60 flex justify-end">
-                <button onclick="fecharResumoPlantao()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg transition-all">
+            <div class="px-6 py-3 border-t border-slate-800/80 bg-slate-950/60 flex justify-end">
+                <button onclick="fecharResumoPlantao()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all">
                     Fechar
                 </button>
             </div>
@@ -173,12 +199,12 @@
             const inputTermo = document.getElementById('termo-busca');
 
             if (tipo === 'agendamento') {
-                btnAgendamento.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all bg-indigo-600 text-white shadow-sm";
-                btnPlantao.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-slate-400 hover:text-white";
+                btnAgendamento.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all btn-tech-primary text-white";
+                btnPlantao.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all text-slate-400 hover:text-white";
                 inputTermo.placeholder = "Digite a cidade ou sigla (ex: rsl, bnu, jba)...";
             } else {
-                btnPlantao.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all bg-indigo-600 text-white shadow-sm";
-                btnAgendamento.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg font-medium text-xs md:text-sm transition-all text-slate-400 hover:text-white";
+                btnPlantao.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all btn-tech-primary text-white";
+                btnAgendamento.className = "flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all text-slate-400 hover:text-white";
                 inputTermo.placeholder = "Digite a filial ou cidade (ex: 02 - RSL, Rio do Sul)...";
             }
         }
@@ -208,12 +234,12 @@
                 atualizarTimestamp();
 
                 if (!data.sucesso) {
-                    container.innerHTML = `<div class="modern-card p-5 rounded-xl text-center text-rose-400 border border-rose-500/20 text-sm font-medium">${data.erro || 'Erro ao buscar dados.'}</div>`;
+                    container.innerHTML = `<div class="card-item p-5 rounded-2xl text-center text-rose-400 border border-rose-500/20 text-sm font-medium">${data.erro || 'Erro ao buscar dados.'}</div>`;
                     return;
                 }
 
                 if (data.dados.length === 0) {
-                    container.innerHTML = `<div class="modern-card p-5 rounded-xl text-center text-slate-400 text-sm font-medium">${data.mensagem || 'Nenhum resultado encontrado.'}</div>`;
+                    container.innerHTML = `<div class="card-item p-5 rounded-2xl text-center text-slate-400 text-sm font-medium">${data.mensagem || 'Nenhum resultado encontrado.'}</div>`;
                     return;
                 }
 
@@ -221,26 +247,28 @@
                 if (tipoAtual === 'agendamento') {
                     data.dados.forEach(item => {
                         html += `
-                            <div class="modern-card rounded-xl p-5">
+                            <div class="card-item rounded-2xl p-5 shadow-lg">
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-800/80 pb-3">
                                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                        <div class="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                        </div>
                                         ${item.cidade}
                                     </h2>
-                                    <span class="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-lg font-medium border border-indigo-500/20">Regional: ${item.regional}</span>
+                                    <span class="text-xs px-3 py-1 bg-indigo-500/10 text-indigo-300 rounded-xl font-medium border border-indigo-500/20">Regional: ${item.regional}</span>
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs md:text-sm">
-                                    <div class="bg-slate-900/60 p-3.5 rounded-lg border border-slate-800/80">
-                                        <span class="block text-slate-400 text-xs mb-0.5">Total Conectados</span>
-                                        <span class="font-semibold text-white text-base">${item.conectados}</span>
+                                    <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60">
+                                        <span class="block text-slate-400 text-xs mb-1">Total Conectados</span>
+                                        <span class="font-bold text-white text-base">${item.conectados}</span>
                                     </div>
-                                    <div class="bg-slate-900/60 p-3.5 rounded-lg border border-slate-800/80">
-                                        <span class="block text-slate-400 text-xs mb-0.5">TTTH</span>
-                                        <span class="font-semibold text-white text-base">${item.ttth}</span>
+                                    <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60">
+                                        <span class="block text-slate-400 text-xs mb-1">TTTH</span>
+                                        <span class="font-bold text-white text-base">${item.ttth}</span>
                                     </div>
-                                    <div class="bg-slate-900/60 p-3.5 rounded-lg border border-slate-800/80">
-                                        <span class="block text-slate-400 text-xs mb-0.5">Responsável Agendamento</span>
-                                        <span class="font-semibold text-indigo-300 text-sm">${item.responsavel}</span>
+                                    <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60">
+                                        <span class="block text-slate-400 text-xs mb-1">Responsável Agendamento</span>
+                                        <span class="font-bold text-indigo-300 text-sm">${item.responsavel}</span>
                                     </div>
                                 </div>
                             </div>
@@ -253,36 +281,36 @@
                         const temSobreaviso = item.status.toUpperCase() === 'SIM';
 
                         html += `
-                            <div class="modern-card rounded-xl p-5">
+                            <div class="card-item rounded-2xl p-5 shadow-lg">
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-800/80 pb-3">
                                     <div>
                                         <h2 class="text-base font-semibold text-white">${item.filial}</h2>
                                         <p class="text-xs text-indigo-300 font-medium">${item.cidade}</p>
                                     </div>
-                                    <span class="text-xs px-2.5 py-1 ${temSobreaviso ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} rounded-lg font-medium border">
+                                    <span class="text-xs px-3 py-1 ${temSobreaviso ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} rounded-xl font-medium border">
                                         Sobreaviso: ${item.status}
                                     </span>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs md:text-sm">
-                                    <div class="bg-slate-900/60 p-3.5 rounded-lg border ${temSab ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800/80'}">
+                                    <div class="bg-slate-950/60 p-3.5 rounded-xl border ${temSab ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800/60'}">
                                         <div class="flex items-center justify-between mb-1.5">
                                             <span class="font-semibold text-slate-300">Sábado</span>
-                                            <span class="text-xs px-2 py-0.5 rounded ${temSab ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">
+                                            <span class="text-xs px-2.5 py-0.5 rounded-lg ${temSab ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">
                                                 ${temSab ? 'Escalado' : 'Sem plantão'}
                                             </span>
                                         </div>
                                         <p class="text-white font-medium">${item.tecnico_sabado}</p>
-                                        <p class="text-xs text-slate-400 mt-0.5">Jornada: ${item.jornada_sabado}</p>
+                                        <p class="text-xs text-slate-400 mt-1">Jornada: ${item.jornada_sabado}</p>
                                     </div>
-                                    <div class="bg-slate-900/60 p-3.5 rounded-lg border ${temDom ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800/80'}">
+                                    <div class="bg-slate-950/60 p-3.5 rounded-xl border ${temDom ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800/60'}">
                                         <div class="flex items-center justify-between mb-1.5">
                                             <span class="font-semibold text-slate-300">Domingo</span>
-                                            <span class="text-xs px-2 py-0.5 rounded ${temDom ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">
+                                            <span class="text-xs px-2.5 py-0.5 rounded-lg ${temDom ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">
                                                 ${temDom ? 'Escalado' : 'Sem plantão'}
                                             </span>
                                         </div>
                                         <p class="text-white font-medium">${item.tecnico_domingo}</p>
-                                        <p class="text-xs text-slate-400 mt-0.5">Jornada: ${item.jornada_domingo}</p>
+                                        <p class="text-xs text-slate-400 mt-1">Jornada: ${item.jornada_domingo}</p>
                                     </div>
                                 </div>
                             </div>
@@ -293,7 +321,7 @@
                 container.innerHTML = html;
             } catch (err) {
                 loading.classList.add('hidden');
-                container.innerHTML = `<div class="modern-card p-5 rounded-xl text-center text-rose-400 text-sm font-medium">Erro ao comunicar com o servidor.</div>`;
+                container.innerHTML = `<div class="card-item p-5 rounded-2xl text-center text-rose-400 text-sm font-medium">Erro ao comunicar com o servidor.</div>`;
             }
         }
 
@@ -301,7 +329,7 @@
             const modal = document.getElementById('modal-resumo');
             const conteudo = document.getElementById('modal-conteudo');
             modal.classList.remove('hidden');
-            conteudo.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2"></div><br>Carregando escala completa...</div>`;
+            conteudo.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2"></div><br>Sincronizando matriz completa...</div>`;
 
             try {
                 const response = await fetch('/api/buscar', {
@@ -318,16 +346,16 @@
                 }
 
                 let tabelaHtml = `
-                    <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40">
+                    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
                         <table class="w-full text-left border-collapse text-xs md:text-sm">
                             <thead>
                                 <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/80 font-medium">
-                                    <th class="p-3.5">Filial / Cidade</th>
-                                    <th class="p-3.5 text-center">Sábado</th>
-                                    <th class="p-3.5 text-center">Domingo</th>
+                                    <th class="p-4">Filial / Cidade</th>
+                                    <th class="p-4 text-center">Sábado</th>
+                                    <th class="p-4 text-center">Domingo</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-800/60">
+                            <tbody class="divide-y divide-slate-800/50">
                 `;
 
                 data.dados.forEach(item => {
@@ -335,16 +363,16 @@
                     const temDom = item.tecnico_domingo && item.tecnico_domingo !== 'Nenhum técnico escalado' && item.tecnico_domingo !== 'NENHUMA OPÇÃO';
 
                     tabelaHtml += `
-                        <tr class="hover:bg-slate-800/30 transition-colors">
-                            <td class="p-3.5">
+                        <tr class="hover:bg-slate-900/40 transition-colors">
+                            <td class="p-4">
                                 <span class="font-medium text-white block text-sm">${item.cidade}</span>
-                                <span class="text-xs text-indigo-400">${item.filial}</span>
+                                <span class="text-xs text-indigo-400 font-medium">${item.filial}</span>
                             </td>
-                            <td class="p-3.5 text-center">
-                                ${temSab ? '<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-md text-xs font-medium border border-emerald-500/20 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-md text-xs font-medium inline-block">Não</span>'}
+                            <td class="p-4 text-center">
+                                ${temSab ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_sabado+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
                             </td>
-                            <td class="p-3.5 text-center">
-                                ${temDom ? '<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-md text-xs font-medium border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-2.5 py-1 bg-slate-800 text-slate-500 rounded-md text-xs font-medium inline-block">Não</span>'}
+                            <td class="p-4 text-center">
+                                ${temDom ? '<span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/20 inline-block" title="'+item.tecnico_domingo+'">Sim</span>' : '<span class="px-3 py-1 bg-slate-900 text-slate-500 rounded-xl text-xs font-medium border border-slate-800 inline-block">Não</span>'}
                             </td>
                         </tr>
                     `;
@@ -354,7 +382,7 @@
                 conteudo.innerHTML = tabelaHtml;
 
             } catch (e) {
-                conteudo.innerHTML = `<div class="text-center py-6 text-rose-400 text-sm font-medium">Erro ao carregar o resumo.</div>`;
+                conteudo.innerHTML = `<div class="text-center py-6 text-rose-400 text-sm font-medium">Erro ao carregar a matriz.</div>`;
             }
         }
 
