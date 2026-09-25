@@ -1,5 +1,6 @@
 import io
 import csv
+import traceback
 from flask import Flask, jsonify, render_template, request
 from rapidfuzz import fuzz, process
 import requests
@@ -7,19 +8,21 @@ import requests
 app = Flask(__name__)
 
 # ============================================================
-# URLs DE EXPORTAÇÃO CSV (Públicas para Leitura)
+# URLs DE EXPORTAÇÃO CSV
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 
 def ler_csv_online(url):
-    """Baixa o CSV usando requests, contornando bloqueios simples de navegador."""
+    """Baixa o CSV usando requests e trata possíveis erros."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         response = requests.get(url, headers=headers, timeout=15)
+        
+        print(f"[DEBUG] Status HTTP para {url}: {response.status_code}")
         
         if response.status_code != 200:
             print(f"[ERRO] Falha ao baixar planilha. Status HTTP: {response.status_code}")
@@ -27,19 +30,18 @@ def ler_csv_online(url):
             
         conteudo = response.text
         
-        # Se retornar HTML, a planilha não está liberada para visualização via link
         if "<html" in conteudo.lower() or "<head" in conteudo.lower():
-            print("[ERRO] A URL retornou HTML. Verifique se a planilha está configurada como 'Qualquer pessoa com o link' -> 'Leitor'.")
+            print("[ERRO] A URL retornou HTML. A planilha pode não estar acessível publicamente.")
             return None
             
         return list(csv.reader(io.StringIO(conteudo)))
     except Exception as e:
-        print(f"[ERRO AO LER CSV] {e}")
+        print(f"[EXCEÇÃO NO DOWNLOAD DO CSV] {e}")
         return None
 
 
 # ============================================================
-# SIGLAS DO AGENDAMENTO E MAPA DE FILIAIS
+# SIGLAS E MAPAS
 # ============================================================
 
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
@@ -201,125 +203,132 @@ def index():
 
 @app.route("/api/buscar", methods=["POST"])
 def buscar():
-    dados = request.json or {}
-    termo = str(dados.get("termo", "")).strip()
-    tipo = dados.get("tipo", "agendamento")
+    try:
+        dados = request.json or {}
+        termo = str(dados.get("termo", "")).strip()
+        tipo = dados.get("tipo", "agendamento")
 
-    if not termo:
-        return jsonify({"sucesso": False, "erro": "Informe um termo para consultar."}), 400
+        if not termo:
+            return jsonify({"sucesso": False, "erro": "Informe um termo para consultar."}), 400
 
-    url = URL_AGENDAMENTOS if tipo == "agendamento" else URL_PLANTAO
-    linhas = ler_csv_online(url)
+        url = URL_AGENDAMENTOS if tipo == "agendamento" else URL_PLANTAO
+        linhas = ler_csv_online(url)
 
-    if not linhas:
-        return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets. Verifique o link."}), 500
+        if not linhas:
+            return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets. Verifique o link."}), 500
 
-    termo_normalizado = normalizar_texto(termo)
-    resultados = []
+        termo_normalizado = normalizar_texto(termo)
+        resultados = []
 
-    if tipo == "agendamento":
-        cidades_map = {}
-        for linha in linhas:
-            for idx, col_val in enumerate(linha):
-                nome_col = col_val.strip()
-                if not nome_col or nome_col.upper() in ["CIDADE", ":-:", "RESPONSÁVEL", "TOTAL CONECTADOS", "|"]:
-                    continue
-                if idx + 3 >= len(linha):
-                    continue
+        if tipo == "agendamento":
+            cidades_map = {}
+            for linha in linhas:
+                for idx, col_val in enumerate(linha):
+                    nome_col = col_val.strip()
+                    if not nome_col or nome_col.upper() in ["CIDADE", ":-:", "RESPONSÁVEL", "TOTAL CONECTADOS", "|"]:
+                        continue
+                    if idx + 3 >= len(linha):
+                        continue
 
-                conectados = linha[idx + 1].strip() if idx + 1 < len(linha) else "-"
-                ttth = linha[idx + 2].strip() if idx + 2 < len(linha) else "-"
-                responsavel = linha[idx + 3].strip() if idx + 3 < len(linha) else "Não informado"
-                regional = linha[idx + 4].strip() if idx + 4 < len(linha) else "-"
+                    conectados = linha[idx + 1].strip() if idx + 1 < len(linha) else "-"
+                    ttth = linha[idx + 2].strip() if idx + 2 < len(linha) else "-"
+                    responsavel = linha[idx + 3].strip() if idx + 3 < len(linha) else "Não informado"
+                    regional = linha[idx + 4].strip() if idx + 4 < len(linha) else "-"
 
-                if responsavel.upper() in ["RESPONŚAVEL", "RESPONSÁVEL"]:
-                    continue
+                    if responsavel.upper() in ["RESPONŚAVEL", "RESPONSÁVEL"]:
+                        continue
 
-                cidades_map[nome_col] = {
-                    "cidade": nome_col, "conectados": conectados,
-                    "ttth": ttth, "responsavel": responsavel, "regional": regional
-                }
-                break
+                    cidades_map[nome_col] = {
+                        "cidade": nome_col, "conectados": conectados,
+                        "ttth": ttth, "responsavel": responsavel, "regional": regional
+                    }
+                    break
 
-        cidades_disponiveis = list(cidades_map.keys())
-        cidades_alvo = []
+            cidades_disponiveis = list(cidades_map.keys())
+            cidades_alvo = []
 
-        if termo_normalizado in MAPEAMENTO_SIGLAS_AGENDAMENTO:
-            cidades_alvo.append(MAPEAMENTO_SIGLAS_AGENDAMENTO[termo_normalizado])
+            if termo_normalizado in MAPEAMENTO_SIGLAS_AGENDAMENTO:
+                cidades_alvo.append(MAPEAMENTO_SIGLAS_AGENDAMENTO[termo_normalizado])
+            else:
+                for cidade in cidades_disponiveis:
+                    if termo_normalizado in normalizar_texto(cidade):
+                        cidades_alvo.append(cidade)
+
+            cidades_encontradas = [
+                cidade for cidade in cidades_disponiveis
+                if any(normalizar_texto(alvo) == normalizar_texto(cidade) for alvo in cidades_alvo)
+            ]
+
+            if not cidades_encontradas and cidades_disponiveis:
+                match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
+                if match and match[1] >= 75:
+                    cidades_encontradas = [match[0]]
+
+            if not cidades_encontradas:
+                return jsonify({"sucesso": True, "total": 0, "mensagem": "Cidade ou sigla não encontrada no Agendamento", "dados": []})
+
+            for cidade in cidades_encontradas:
+                if cidade in cidades_map:
+                    resultados.append(cidades_map[cidade])
         else:
+            cidades_disponiveis = list(MAPA_FILIAIS_ORIGINAL.keys())
+            filiais_disponiveis = list(set(MAPA_FILIAIS_ORIGINAL.values()))
+            cidades_encontradas, filiais_encontradas = [], []
+
             for cidade in cidades_disponiveis:
                 if termo_normalizado in normalizar_texto(cidade):
-                    cidades_alvo.append(cidade)
+                    cidades_encontradas.append(cidade)
 
-        cidades_encontradas = [
-            cidade for cidade in cidades_disponiveis
-            if any(normalizar_texto(alvo) == normalizar_texto(cidade) for alvo in cidades_alvo)
-        ]
+            for filial in filiais_disponiveis:
+                if termo_normalizado in normalizar_texto(filial):
+                    filiais_encontradas.append(filial)
 
-        if not cidades_encontradas and cidades_disponiveis:
-            match = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
-            if match and match[1] >= 75:
-                cidades_encontradas = [match[0]]
+            if not cidades_encontradas and not filiais_encontradas:
+                match_cidade = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
+                match_filial = process.extractOne(termo, filiais_disponiveis, scorer=fuzz.WRatio)
+                score_cidade = match_cidade[1] if match_cidade else 0
+                score_filial = match_filial[1] if match_filial else 0
 
-        if not cidades_encontradas:
-            return jsonify({"sucesso": True, "total": 0, "mensagem": "Cidade ou sigla não encontrada no Agendamento", "dados": []})
+                if score_cidade >= 60 and score_cidade >= score_filial:
+                    cidades_encontradas = [match_cidade[0]]
+                elif score_filial >= 60:
+                    filiais_encontradas = [match_filial[0]]
 
-        for cidade in cidades_encontradas:
-            if cidade in cidades_map:
-                resultados.append(cidades_map[cidade])
-    else:
-        cidades_disponiveis = list(MAPA_FILIAIS_ORIGINAL.keys())
-        filiais_disponiveis = list(set(MAPA_FILIAIS_ORIGINAL.values()))
-        cidades_encontradas, filiais_encontradas = [], []
+            if termo_normalizado == "todas_as_cidades":
+                for linha in linhas:
+                    dados_linha = extrair_dados_matriz_geral(linha)
+                    if dados_linha:
+                        resultados.append(dados_linha)
+                return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
-        for cidade in cidades_disponiveis:
-            if termo_normalizado in normalizar_texto(cidade):
-                cidades_encontradas.append(cidade)
+            if not cidades_encontradas and not filiais_encontradas:
+                return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
 
-        for filial in filiais_disponiveis:
-            if termo_normalizado in normalizar_texto(filial):
-                filiais_encontradas.append(filial)
-
-        if not cidades_encontradas and not filiais_encontradas:
-            match_cidade = process.extractOne(termo, cidades_disponiveis, scorer=fuzz.WRatio)
-            match_filial = process.extractOne(termo, filiais_disponiveis, scorer=fuzz.WRatio)
-            score_cidade = match_cidade[1] if match_cidade else 0
-            score_filial = match_filial[1] if match_filial else 0
-
-            if score_cidade >= 60 and score_cidade >= score_filial:
-                cidades_encontradas = [match_cidade[0]]
-            elif score_filial >= 60:
-                filiais_encontradas = [match_filial[0]]
-
-        if termo_normalizado == "todas_as_cidades":
             for linha in linhas:
-                dados_linha = extrair_dados_matriz_geral(linha)
-                if dados_linha:
-                    resultados.append(dados_linha)
-            return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+                dados_linha = extrair_dados_plantao_linha(linha)
+                cidade = dados_linha["cidade"]
+                filial = dados_linha["filial"]
 
-        if not cidades_encontradas and not filiais_encontradas:
-            return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
+                if not cidade:
+                    continue
 
-        for linha in linhas:
-            dados_linha = extrair_dados_plantao_linha(linha)
-            cidade = dados_linha["cidade"]
-            filial = dados_linha["filial"]
+                if cidades_encontradas:
+                    if cidade in cidades_encontradas:
+                        resultados.append(dados_linha)
+                elif filiais_encontradas:
+                    if filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
+                        resultados.append(dados_linha)
 
-            if not cidade:
-                continue
+            if len(resultados) == 0:
+                return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
 
-            if cidades_encontradas:
-                if cidade in cidades_encontradas:
-                    resultados.append(dados_linha)
-            elif filiais_encontradas:
-                if filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
-                    resultados.append(dados_linha)
+        return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
-        if len(resultados) == 0:
-            return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
-
-    return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+    except Exception as e:
+        print("================ ERRO CRTICO NA ROTA /API/BUSCAR ================")
+        traceback.print_exc()
+        print("=================================================================")
+        return jsonify({"sucesso": False, "erro": str(e)}), 500
 
 
 application = app
