@@ -10,7 +10,7 @@ app = Flask(__name__)
 # URLs DE EXPORTAÇÃO CSV (Google Sheets)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/1U7Xx9iENygcdO-Hx7gnihzmQxeJyklUqRMelJ9y5_QE/export?format=csv"
 
 
 def ler_csv_online(url):
