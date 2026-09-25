@@ -8,40 +8,42 @@ import requests
 app = Flask(__name__)
 
 # ============================================================
-# URLs DE EXPORTAÇÃO CSV
+# URLs DE EXPORTAÇÃO CSV (Modo Compatível com Vercel)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 
 def ler_csv_online(url):
-    """Baixa o CSV usando requests e trata possíveis erros."""
+    """Baixa o CSV usando requests com timeout otimizado para ambiente serverless."""
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
         }
-        response = requests.get(url, headers=headers, timeout=15)
         
-        print(f"[DEBUG] Status HTTP para {url}: {response.status_code}")
+        # Timeout reduzido para 8 segundos para evitar estouro de limite da Vercel
+        response = requests.get(url, headers=headers, timeout=8)
         
         if response.status_code != 200:
-            print(f"[ERRO] Falha ao baixar planilha. Status HTTP: {response.status_code}")
+            print(f"[ERRO] Status HTTP retornado: {response.status_code}")
             return None
             
         conteudo = response.text
         
         if "<html" in conteudo.lower() or "<head" in conteudo.lower():
-            print("[ERRO] A URL retornou HTML. A planilha pode não estar acessível publicamente.")
+            print("[ERRO] O Google retornou uma página HTML (bloqueio ou planilha sem permissão pública de 'Qualquer pessoa com o link').")
             return None
             
         return list(csv.reader(io.StringIO(conteudo)))
     except Exception as e:
-        print(f"[EXCEÇÃO NO DOWNLOAD DO CSV] {e}")
+        print(f"[EXCEÇÃO AO BAIXAR CSV] {e}")
         return None
 
 
 # ============================================================
-# SIGLAS E MAPAS
+# SIGLAS E MAPAS DE FILIAIS
 # ============================================================
 
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
@@ -215,7 +217,7 @@ def buscar():
         linhas = ler_csv_online(url)
 
         if not linhas:
-            return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets. Verifique o link."}), 500
+            return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets na Vercel."}), 500
 
         termo_normalizado = normalizar_texto(termo)
         resultados = []
@@ -325,9 +327,7 @@ def buscar():
         return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
     except Exception as e:
-        print("================ ERRO CRTICO NA ROTA /API/BUSCAR ================")
         traceback.print_exc()
-        print("=================================================================")
         return jsonify({"sucesso": False, "erro": str(e)}), 500
 
 
