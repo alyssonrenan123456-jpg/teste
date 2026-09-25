@@ -1,44 +1,27 @@
 import io
-import csv
 import traceback
 from flask import Flask, jsonify, render_template, request
+import pandas as pd
 from rapidfuzz import fuzz, process
-import requests
 
 app = Flask(__name__)
 
 # ============================================================
-# URLs DE EXPORTAÇÃO CSV (Modo Compatível com Vercel)
+# URLs DE EXPORTAÇÃO CSV (Google Sheets)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 
 def ler_csv_online(url):
-    """Baixa o CSV usando requests com timeout otimizado para ambiente serverless."""
+    """Lê o CSV diretamente usando pandas, ideal e seguro para a Vercel."""
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
-        }
-        
-        # Timeout reduzido para 8 segundos para evitar estouro de limite da Vercel
-        response = requests.get(url, headers=headers, timeout=8)
-        
-        if response.status_code != 200:
-            print(f"[ERRO] Status HTTP retornado: {response.status_code}")
-            return None
-            
-        conteudo = response.text
-        
-        if "<html" in conteudo.lower() or "<head" in conteudo.lower():
-            print("[ERRO] O Google retornou uma página HTML (bloqueio ou planilha sem permissão pública de 'Qualquer pessoa com o link').")
-            return None
-            
-        return list(csv.reader(io.StringIO(conteudo)))
+        # Lê a URL pública e converte diretamente para lista de listas
+        df = pd.read_csv(url, dtype=str)
+        df = df.fillna("")  # Substitui valores vazios por string vazia
+        return [df.columns.tolist()] + df.values.tolist()
     except Exception as e:
-        print(f"[EXCEÇÃO AO BAIXAR CSV] {e}")
+        print(f"[ERRO AO LER PLANILHA COM PANDAS] {e}")
         return None
 
 
@@ -133,7 +116,7 @@ def encontrar_status_na_linha(linha):
 
 
 def extrair_dados_plantao_linha(linha):
-    supervisor = linha[0].strip() if len(linha) > 0 else ""
+    supervisor = str(linha[0]).strip() if len(linha) > 0 else ""
     cidade = encontrar_cidade_na_linha(linha)
     filial = obter_filial_por_cidade(cidade)
     status_bruto = encontrar_status_na_linha(linha)
@@ -143,12 +126,12 @@ def extrair_dados_plantao_linha(linha):
     tecnicos_encontrados = []
 
     for i, valor in enumerate(linha):
-        valor = valor.strip()
+        valor = str(valor).strip()
         valor_upper = valor.upper()
         if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
             jornada = "-"
             if i + 1 < len(linha):
-                proximo = linha[i + 1].strip()
+                proximo = str(linha[i + 1]).strip()
                 if ":" in proximo or "H" in proximo.upper() or "AS" in proximo.upper() or "-" in proximo:
                     jornada = proximo
             tecnicos_encontrados.append((valor, jornada))
@@ -180,9 +163,9 @@ def extrair_dados_matriz_geral(linha):
 
     tecnicos_encontrados = []
     for valor in linha:
-        valor_upper = valor.strip().upper()
+        valor_upper = str(valor).strip().upper()
         if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
-            tecnicos_encontrados.append(valor.strip())
+            tecnicos_encontrados.append(str(valor).strip())
 
     tem_sabado = len(tecnicos_encontrados) >= 1
     tem_domingo = len(tecnicos_encontrados) >= 2
@@ -226,16 +209,16 @@ def buscar():
             cidades_map = {}
             for linha in linhas:
                 for idx, col_val in enumerate(linha):
-                    nome_col = col_val.strip()
+                    nome_col = str(col_val).strip()
                     if not nome_col or nome_col.upper() in ["CIDADE", ":-:", "RESPONSÁVEL", "TOTAL CONECTADOS", "|"]:
                         continue
                     if idx + 3 >= len(linha):
                         continue
 
-                    conectados = linha[idx + 1].strip() if idx + 1 < len(linha) else "-"
-                    ttth = linha[idx + 2].strip() if idx + 2 < len(linha) else "-"
-                    responsavel = linha[idx + 3].strip() if idx + 3 < len(linha) else "Não informado"
-                    regional = linha[idx + 4].strip() if idx + 4 < len(linha) else "-"
+                    conectados = str(linha[idx + 1]).strip() if idx + 1 < len(linha) else "-"
+                    ttth = str(linha[idx + 2]).strip() if idx + 2 < len(linha) else "-"
+                    responsavel = str(linha[idx + 3]).strip() if idx + 3 < len(linha) else "Não informado"
+                    regional = str(linha[idx + 4]).strip() if idx + 4 < len(linha) else "-"
 
                     if responsavel.upper() in ["RESPONŚAVEL", "RESPONSÁVEL"]:
                         continue
