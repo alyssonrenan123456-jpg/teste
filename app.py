@@ -42,8 +42,8 @@ MAPEAMENTO_SIGLAS_AGENDAMENTO = {
     "itp": "Itapoá",
 }
 
-# NOVO: Dicionário para Mapeamento de Filiais via Cidade (Resolvendo remoção da coluna)
-MAPA_FILIAIS = {
+# Dicionário base de Filiais
+MAPA_FILIAIS_ORIGINAL = {
     "Brunópolis": "01 - MCA", "Campos Novos": "01 - MCA", "Curitibanos": "01 - MCA",
     "Fraiburgo": "01 - MCA", "Frei Rogério": "01 - MCA", "Iomerê": "01 - MCA",
     "Monte Carlo": "01 - MCA", "Pinheiro Preto": "01 - MCA", "Videira": "01 - MCA",
@@ -68,6 +68,15 @@ MAPA_FILIAIS = {
     "Itapoá": "12 - ITP"
 }
 
+# Normaliza as chaves (tudo minúsculo e sem espaços extras) para evitar falhas de leitura
+MAPA_FILIAIS = {k.strip().lower(): v for k, v in MAPA_FILIAIS_ORIGINAL.items()}
+
+def obter_filial_por_cidade(cidade):
+    if not cidade:
+        return "Não mapeada"
+    return MAPA_FILIAIS.get(cidade.strip().lower(), "Não mapeada")
+
+
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
     try:
@@ -84,14 +93,11 @@ def ler_csv_online(url):
 
 def extrair_dados_plantao_linha(linha):
     """Extrai os dados estruturados para pesquisas normais por filial/cidade"""
-    
-    # AGORA: A coluna 0 passou a ser o Supervisor, e a 1 continua a ser a Cidade
     coluna_supervisor = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
 
-    # INFERE A FILIAL através do dicionário com base no nome da cidade
-    coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "Não mapeada")
+    coluna_filial = obter_filial_por_cidade(coluna_cidade)
 
     tec_sabado = "Nenhum técnico escalado"
     jornada_sabado = "-"
@@ -133,8 +139,8 @@ def extrair_dados_plantao_linha(linha):
     status_final = "SIM" if tem_sobreaviso_real else "NÃO"
 
     return {
-        "filial": coluna_filial,  # Agora vem do dicionário
-        "supervisor": coluna_supervisor, # Novo campo da planilha
+        "filial": coluna_filial,
+        "supervisor": coluna_supervisor,
         "cidade": coluna_cidade,
         "status": status_final,
         "tecnico_sabado": tec_sabado,
@@ -151,7 +157,7 @@ def extrair_dados_matriz_geral(linha):
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
     
-    coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "Não mapeada")
+    coluna_filial = obter_filial_por_cidade(coluna_cidade)
 
     tec_sabado = "Nenhum técnico escalado"
     tec_domingo = "Nenhum técnico escalado"
@@ -312,8 +318,6 @@ def buscar():
 
         for linha in linhas:
             if len(linha) > 1:
-                # O índice 0 agora é Supervisor, então ignoramos para "Filial" oficial.
-                # Em vez disso, alimentamos as filiais disponíveis diretamente do Dicionário!
                 c = linha[1].strip()
                 if c and c.upper() not in [
                     "CIDADE",
@@ -323,8 +327,8 @@ def buscar():
                     "TÉCNICO RESPONSÁVEL",
                 ]:
                     cidades_disponiveis.append(c)
-                    f = MAPA_FILIAIS.get(c, "")
-                    if f:
+                    f = obter_filial_por_cidade(c)
+                    if f != "Não mapeada":
                         filiais_disponiveis.append(f)
 
         filiais_disponiveis = list(set(filiais_disponiveis))
@@ -391,7 +395,7 @@ def buscar():
         for linha in linhas:
             if len(linha) > 1:
                 coluna_cidade = linha[1].strip()
-                coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "")
+                coluna_filial = obter_filial_por_cidade(coluna_cidade)
 
                 if coluna_cidade.upper() in [
                     "CIDADE",
