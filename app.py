@@ -14,8 +14,8 @@ app = Flask(__name__)
 # URL da planilha de Agendamentos
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 
-# URL definitiva da planilha de Plantão
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
+# URL definitiva da planilha de Plantão (com o ID corrigido)
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 # URL do Quadro de Avisos (Google Apps Script)
 URL_AVISOS = "https://script.google.com/macros/s/AKfycbxuHFEn-ss5KHYHLIoDSXaRuf7Mwa0Dy8Mm20wrnBfy1ZCG2JHBeJ31g_yC-H38qnMQkA/exec"
