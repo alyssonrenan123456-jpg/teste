@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import urllib.request
+import urllib.error
 from flask import Flask, jsonify, render_template, request
 from rapidfuzz import fuzz, process
 
@@ -14,7 +15,7 @@ app = Flask(__name__)
 # URL da planilha de Agendamentos
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 
-# URL definitiva da planilha de Plantão (com o ID corrigido)
+# URL definitiva da planilha de Plantão (corrigida)
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 # URL do Quadro de Avisos (Google Apps Script)
@@ -223,11 +224,7 @@ def cidades_da_filial(filial):
 
 
 def encontrar_cidade_na_linha(linha):
-    """
-    Procura uma cidade conhecida em qualquer coluna da linha.
-
-    Não depende mais de linha[1] ser obrigatoriamente a cidade.
-    """
+    """Procura uma cidade conhecida em qualquer coluna da linha."""
     cidades = list(MAPA_FILIAIS_ORIGINAL.keys())
 
     for valor in linha:
@@ -263,7 +260,7 @@ def eh_linha_valida_plantao(linha):
 
 
 # ============================================================
-# LEITURA DOS CSVs
+# LEITURA DOS CSVs (ATUALIZADA E SEGURA)
 # ============================================================
 
 def ler_csv_online(url):
@@ -272,17 +269,28 @@ def ler_csv_online(url):
         req = urllib.request.Request(
             url,
             headers={
-                "User-Agent": "Mozilla/5.0"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
         )
 
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             conteudo = response.read().decode("utf-8")
+            
+            # Se o Google retornar HTML, indica que a planilha não está pública
+            if "<html" in conteudo.lower() or "<head" in conteudo.lower():
+                print(f"[ERRO] A URL retornou HTML em vez de CSV. Verifique se a planilha está pública: {url}")
+                return None
 
         return list(csv.reader(io.StringIO(conteudo)))
 
+    except urllib.error.HTTPError as e:
+        print(f"[ERRO HTTP {e.code}] Falha ao acessar URL do Google Sheets: {e.reason}")
+        return None
+    except urllib.error.URLError as e:
+        print(f"[ERRO DE REDE] Falha ao conectar ao Google Sheets: {e.reason}")
+        return None
     except Exception as e:
-        print(f"Erro ao ler CSV do Google Sheets: {e}")
+        print(f"[ERRO INESPERADO] Falha ao ler CSV: {e}")
         return None
 
 
@@ -291,10 +299,7 @@ def ler_csv_online(url):
 # ============================================================
 
 def extrair_dados_plantao_linha(linha):
-    """
-    Extrai os dados do plantão sem depender da posição da cidade.
-    """
-
+    """Extrai os dados do plantão sem depender da posição da cidade."""
     supervisor = (
         linha[0].strip()
         if len(linha) > 0
@@ -314,7 +319,6 @@ def extrair_dados_plantao_linha(linha):
     tecnicos_encontrados = []
 
     for i, valor in enumerate(linha):
-
         valor = valor.strip()
         valor_upper = valor.upper()
 
@@ -322,11 +326,9 @@ def extrair_dados_plantao_linha(linha):
             "PRÓPRIOS" in valor_upper
             or "TERCEIRIZADOS" in valor_upper
         ):
-
             jornada = "-"
 
             if i + 1 < len(linha):
-
                 proximo = linha[i + 1].strip()
 
                 if (
@@ -399,11 +401,7 @@ def extrair_dados_plantao_linha(linha):
 # ============================================================
 
 def extrair_dados_matriz_geral(linha):
-    """
-    Retorna exatamente:
-    Filial | Cidade | Sábado | Domingo
-    """
-
+    """Retorna exatamente: Filial | Cidade | Sábado | Domingo"""
     cidade = encontrar_cidade_na_linha(linha)
 
     if not cidade:
@@ -415,7 +413,6 @@ def extrair_dados_matriz_geral(linha):
     tecnicos_encontrados = []
 
     for valor in linha:
-
         valor_upper = valor.strip().upper()
 
         if (
@@ -456,9 +453,7 @@ def index():
 
 @app.route("/api/avisos", methods=["GET"])
 def buscar_avisos():
-
     try:
-
         req = urllib.request.Request(
             URL_AVISOS,
             headers={
@@ -470,7 +465,6 @@ def buscar_avisos():
             req,
             timeout=10
         ) as response:
-
             dados = json.loads(
                 response.read().decode("utf-8")
             )
@@ -481,11 +475,7 @@ def buscar_avisos():
         })
 
     except Exception as e:
-
-        print(
-            f"Erro ao buscar avisos: {e}"
-        )
-
+        print(f"Erro ao buscar avisos: {e}")
         return jsonify({
             "sucesso": False,
             "avisos": []
@@ -494,7 +484,6 @@ def buscar_avisos():
 
 @app.route("/api/buscar", methods=["POST"])
 def buscar():
-
     dados = request.json or {}
 
     termo = str(
@@ -507,21 +496,15 @@ def buscar():
     )
 
     if not termo:
-
         return (
             jsonify({
                 "sucesso": False,
-                "erro": (
-                    "Informe um termo para consultar."
-                )
+                "erro": "Informe um termo para consultar."
             }),
             400
         )
 
-    # ========================================================
-    # SELECIONA A PLANILHA
-    # ========================================================
-
+    # Seleciona a planilha
     if tipo == "agendamento":
         url = URL_AGENDAMENTOS
     else:
@@ -530,34 +513,25 @@ def buscar():
     linhas = ler_csv_online(url)
 
     if not linhas:
-
         return (
             jsonify({
                 "sucesso": False,
-                "erro": (
-                    "Não foi possível conectar "
-                    "ao Google Sheets."
-                )
+                "erro": "Não foi possível conectar ao Google Sheets."
             }),
             500
         )
 
     termo_normalizado = normalizar_texto(termo)
-
     resultados = []
 
     # ========================================================
     # 1. AGENDAMENTO
     # ========================================================
-
     if tipo == "agendamento":
-
         cidades_map = {}
 
         for linha in linhas:
-
             for idx, col_val in enumerate(linha):
-
                 nome_col = col_val.strip()
 
                 if not nome_col:
@@ -621,27 +595,20 @@ def buscar():
 
         cidades_alvo = []
 
-        # Busca por sigla
         if termo_normalizado in MAPEAMENTO_SIGLAS_AGENDAMENTO:
-
             cidades_alvo.append(
                 MAPEAMENTO_SIGLAS_AGENDAMENTO[
                     termo_normalizado
                 ]
             )
-
         else:
-
-            # Busca parcial
             for cidade in cidades_disponiveis:
-
                 if (
                     termo_normalizado
                     in normalizar_texto(cidade)
                 ):
                     cidades_alvo.append(cidade)
 
-        # Busca exata normalizada
         cidades_encontradas = [
             cidade
             for cidade in cidades_disponiveis
@@ -652,12 +619,10 @@ def buscar():
             )
         ]
 
-        # Fuzzy
         if (
             not cidades_encontradas
             and cidades_disponiveis
         ):
-
             match = process.extractOne(
                 termo,
                 cidades_disponiveis,
@@ -670,19 +635,14 @@ def buscar():
                 ]
 
         if not cidades_encontradas:
-
             return jsonify({
                 "sucesso": True,
                 "total": 0,
-                "mensagem": (
-                    "Cidade ou sigla não encontrada "
-                    "no Agendamento"
-                ),
+                "mensagem": "Cidade ou sigla não encontrada no Agendamento",
                 "dados": []
             })
 
         for cidade in cidades_encontradas:
-
             if cidade in cidades_map:
                 resultados.append(
                     cidades_map[cidade]
@@ -691,11 +651,7 @@ def buscar():
     # ========================================================
     # 2. PLANTÃO / SOBREAVISO
     # ========================================================
-
     else:
-
-        # As cidades e filiais vêm do mapa existente,
-        # não da posição das colunas da planilha.
         cidades_disponiveis = list(
             MAPA_FILIAIS_ORIGINAL.keys()
         )
@@ -709,12 +665,7 @@ def buscar():
         cidades_encontradas = []
         filiais_encontradas = []
 
-        # ====================================================
-        # BUSCA DIRETA POR CIDADE
-        # ====================================================
-
         for cidade in cidades_disponiveis:
-
             if (
                 termo_normalizado
                 in normalizar_texto(cidade)
@@ -723,12 +674,7 @@ def buscar():
                     cidade
                 )
 
-        # ====================================================
-        # BUSCA DIRETA POR FILIAL
-        # ====================================================
-
         for filial in filiais_disponiveis:
-
             if (
                 termo_normalizado
                 in normalizar_texto(filial)
@@ -737,15 +683,10 @@ def buscar():
                     filial
                 )
 
-        # ====================================================
-        # BUSCA FUZZY
-        # ====================================================
-
         if (
             not cidades_encontradas
             and not filiais_encontradas
         ):
-
             match_cidade = process.extractOne(
                 termo,
                 cidades_disponiveis,
@@ -777,21 +718,13 @@ def buscar():
                 cidades_encontradas = [
                     match_cidade[0]
                 ]
-
             elif score_filial >= 60:
-
                 filiais_encontradas = [
                     match_filial[0]
                 ]
 
-        # ====================================================
-        # TODAS AS CIDADES
-        # ====================================================
-
         if termo_normalizado == "todas_as_cidades":
-
             for linha in linhas:
-
                 dados_linha = (
                     extrair_dados_matriz_geral(
                         linha
@@ -809,31 +742,18 @@ def buscar():
                 "dados": resultados
             })
 
-        # ====================================================
-        # NENHUMA BUSCA ENCONTRADA
-        # ====================================================
-
         if (
             not cidades_encontradas
             and not filiais_encontradas
         ):
-
             return jsonify({
                 "sucesso": True,
                 "total": 0,
-                "mensagem": (
-                    "Essa cidade não possui "
-                    "sobreaviso no momento"
-                ),
+                "mensagem": "Essa cidade não possui sobreaviso no momento",
                 "dados": []
             })
 
-        # ====================================================
-        # PERCORRE TODA A PLANILHA
-        # ====================================================
-
         for linha in linhas:
-
             dados_linha = (
                 extrair_dados_plantao_linha(
                     linha
@@ -846,29 +766,13 @@ def buscar():
             if not cidade:
                 continue
 
-            # -----------------------------------------------
-            # PESQUISA POR CIDADE
-            # -----------------------------------------------
-
             if cidades_encontradas:
-
                 if cidade in cidades_encontradas:
-
                     resultados.append(
                         dados_linha
                     )
-
-            # -----------------------------------------------
-            # PESQUISA POR FILIAL
-            # -----------------------------------------------
-
             elif filiais_encontradas:
-
                 if filial in filiais_encontradas:
-
-                    # Quando pesquisar pela filial,
-                    # mostra apenas cidades com
-                    # sobreaviso real.
                     if dados_linha[
                         "tem_tecnico_real"
                     ]:
@@ -876,25 +780,13 @@ def buscar():
                             dados_linha
                         )
 
-        # ====================================================
-        # NENHUM RESULTADO
-        # ====================================================
-
         if len(resultados) == 0:
-
             return jsonify({
                 "sucesso": True,
                 "total": 0,
-                "mensagem": (
-                    "Essa cidade não possui "
-                    "sobreaviso no momento"
-                ),
+                "mensagem": "Essa cidade não possui sobreaviso no momento",
                 "dados": []
             })
-
-    # ========================================================
-    # RETORNO FINAL
-    # ========================================================
 
     return jsonify({
         "sucesso": True,
@@ -903,9 +795,7 @@ def buscar():
     })
 
 
-# Compatibilidade com servidores como Gunicorn
 application = app
-
 
 if __name__ == "__main__":
     app.run(debug=True)
