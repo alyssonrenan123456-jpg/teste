@@ -18,72 +18,55 @@ URL_AVISOS = "https://script.google.com/macros/s/AKfycbxuHFEn-ss5KHYHLIoDSXaRuf7
 
 # Dicionário de siglas exclusivo para o Agendamento
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
-    "bnu": "Brunópolis",
-    "cnv": "Campos Novos",
-    "ctb": "Curitibanos",
-    "fbg": "Fraiburgo",
-    "frr": "Frei Rogério",
-    "iom": "Iomerê",
-    "mca": "Monte Carlo",
-    "ppr": "Pinheiro Preto",
-    "vda": "Videira",
-    "agr": "Agronômica",
-    "aur": "Aurora",
-    "itu": "Ituporanga",
-    "lon": "Lontras",
-    "ptl": "Petrolândia",
-    "prd": "Pouso Redondo",
-    "rsl": "Rio do Sul",
-    "cbs": "Campo Belo do Sul",
-    "cat": "Capão Alto",
-    "cpo": "Correia Pinto",
-    "lgs": "Lages",
-    "pta": "Ponte Alta",
-    "api": "Apiúna",
-    "asc": "Ascurra",
-    "blu": "Blumenau",
-    "idl": "Indaial",
-    "rod": "Rodeio",
-    "ace": "Água Doce",
-    "ctv": "Catanduvas",
-    "hdo": "Herval d'Oeste",
-    "ibc": "Ibicaré",
-    "ipi": "Ipira",
-    "jba": "Joaçaba",
-    "lzn": "Luzerna",
-    "ptb": "Piratuba",
-    "svs": "Salto Veloso",
-    "tan": "Tangará",
-    "tzs": "Treze Tílias",
-    "ant": "Anita Garibaldi",
-    "cdr": "Caçador",
-    "mra": "Macieira",
-    "pan": "Ponte Alta do Norte",
-    "sct": "São Cristóvão do Sul",
-    "arq": "Araquari",
-    "bbs": "Balneário Barra do Sul",
-    "brq": "Brusque",
-    "cmb": "Camboriú",
-    "cal": "Campo Alegre",
-    "grm": "Guaramirim",
-    "jas": "Jaraguá do Sul",
-    "jve": "Joinville",
-    "las": "Luiz Alves",
-    "mas": "Massaranduba",
-    "sfs": "São Francisco do Sul",
-    "sch": "Schroeder",
-    "evv": "Erval Velho",
-    "ldp": "Lacerdópolis",
-    "rdc": "Rio dos Cedros",
-    "bpi": "Balneário Piçarras",
-    "bve": "Barra Velha",
-    "nav": "Navegantes",
-    "pen": "Penha",
-    "sji": "São João do Itaperiú",
-    "gva": "Garuva",
+    "bnu": "Brunópolis", "cnv": "Campos Novos", "ctb": "Curitibanos",
+    "fbg": "Fraiburgo", "frr": "Frei Rogério", "iom": "Iomerê",
+    "mca": "Monte Carlo", "ppr": "Pinheiro Preto", "vda": "Videira",
+    "agr": "Agronômica", "aur": "Aurora", "itu": "Ituporanga",
+    "lon": "Lontras", "ptl": "Petrolândia", "prd": "Pouso Redondo",
+    "rsl": "Rio do Sul", "cbs": "Campo Belo do Sul", "cat": "Capão Alto",
+    "cpo": "Correia Pinto", "lgs": "Lages", "pta": "Ponte Alta",
+    "api": "Apiúna", "asc": "Ascurra", "blu": "Blumenau",
+    "idl": "Indaial", "rod": "Rodeio", "ace": "Água Doce",
+    "ctv": "Catanduvas", "hdo": "Herval d'Oeste", "ibc": "Ibicaré",
+    "ipi": "Ipira", "jba": "Joaçaba", "lzn": "Luzerna",
+    "ptb": "Piratuba", "svs": "Salto Veloso", "tan": "Tangará",
+    "tzs": "Treze Tílias", "ant": "Anita Garibaldi", "cdr": "Caçador",
+    "mra": "Macieira", "pan": "Ponte Alta do Norte", "sct": "São Cristóvão do Sul",
+    "arq": "Araquari", "bbs": "Balneário Barra do Sul", "brq": "Brusque",
+    "cmb": "Camboriú", "cal": "Campo Alegre", "grm": "Guaramirim",
+    "jas": "Jaraguá do Sul", "jve": "Joinville", "las": "Luiz Alves",
+    "mas": "Massaranduba", "sfs": "São Francisco do Sul", "sch": "Schroeder",
+    "evv": "Erval Velho", "ldp": "Lacerdópolis", "rdc": "Rio dos Cedros",
+    "bpi": "Balneário Piçarras", "bve": "Barra Velha", "nav": "Navegantes",
+    "pen": "Penha", "sji": "São João do Itaperiú", "gva": "Garuva",
     "itp": "Itapoá",
 }
 
+# NOVO: Dicionário para Mapeamento de Filiais via Cidade (Resolvendo remoção da coluna)
+MAPA_FILIAIS = {
+    "Brunópolis": "01 - MCA", "Campos Novos": "01 - MCA", "Curitibanos": "01 - MCA",
+    "Fraiburgo": "01 - MCA", "Frei Rogério": "01 - MCA", "Iomerê": "01 - MCA",
+    "Monte Carlo": "01 - MCA", "Pinheiro Preto": "01 - MCA", "Videira": "01 - MCA",
+    "Agronômica": "02 - RSL", "Aurora": "02 - RSL", "Ituporanga": "02 - RSL",
+    "Lontras": "02 - RSL", "Petrolândia": "02 - RSL", "Pouso Redondo": "02 - RSL",
+    "Rio do Sul": "02 - RSL", "Campo Belo do Sul": "03 - LGS", "Capão Alto": "03 - LGS",
+    "Correia Pinto": "03 - LGS", "Lages": "03 - LGS", "Ponte Alta": "03 - LGS",
+    "Apiúna": "04 - BLU", "Ascurra": "04 - BLU", "Blumenau": "04 - BLU",
+    "Indaial": "04 - BLU", "Rodeio": "04 - BLU", "Água Doce": "06 - JBA",
+    "Catanduvas": "06 - JBA", "Herval d'Oeste": "06 - JBA", "Ibicaré": "06 - JBA",
+    "Ipira": "06 - JBA", "Joaçaba": "06 - JBA", "Luzerna": "06 - JBA",
+    "Piratuba": "06 - JBA", "Salto Veloso": "06 - JBA", "Tangará": "06 - JBA",
+    "Treze Tílias": "06 - JBA", "Anita Garibaldi": "07 - ANT", "Caçador": "08 - CDR",
+    "Macieira": "08 - CDR", "Ponte Alta do Norte": "09 - SCT", "São Cristóvão do Sul": "09 - SCT",
+    "Araquari": "10 - JVE", "Balneário Barra do Sul": "10 - JVE", "Brusque": "10 - JVE",
+    "Camboriú": "10 - JVE", "Campo Alegre": "10 - JVE", "Guaramirim": "10 - JVE",
+    "Jaraguá do Sul": "10 - JVE", "Joinville": "10 - JVE", "Luiz Alves": "10 - JVE",
+    "Massaranduba": "10 - JVE", "São Francisco do Sul": "10 - JVE", "Schroeder": "10 - JVE",
+    "Erval Velho": "1002 - EVV", "Lacerdópolis": "1002 - EVV", "Rio dos Cedros": "1063 - RDC",
+    "Balneário Piçarras": "11 - BVE", "Barra Velha": "11 - BVE", "Navegantes": "11 - BVE",
+    "Penha": "11 - BVE", "São João do Itaperiú": "11 - BVE", "Garuva": "12 - ITP",
+    "Itapoá": "12 - ITP"
+}
 
 def ler_csv_online(url):
     """Baixa e lê os dados atualizados em tempo real do Google Sheets"""
@@ -101,9 +84,14 @@ def ler_csv_online(url):
 
 def extrair_dados_plantao_linha(linha):
     """Extrai os dados estruturados para pesquisas normais por filial/cidade"""
-    coluna_filial = linha[0].strip() if len(linha) > 0 else ""
+    
+    # AGORA: A coluna 0 passou a ser o Supervisor, e a 1 continua a ser a Cidade
+    coluna_supervisor = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
+
+    # INFERE A FILIAL através do dicionário com base no nome da cidade
+    coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "Não mapeada")
 
     tec_sabado = "Nenhum técnico escalado"
     jornada_sabado = "-"
@@ -145,7 +133,8 @@ def extrair_dados_plantao_linha(linha):
     status_final = "SIM" if tem_sobreaviso_real else "NÃO"
 
     return {
-        "filial": coluna_filial,
+        "filial": coluna_filial,  # Agora vem do dicionário
+        "supervisor": coluna_supervisor, # Novo campo da planilha
         "cidade": coluna_cidade,
         "status": status_final,
         "tecnico_sabado": tec_sabado,
@@ -158,9 +147,11 @@ def extrair_dados_plantao_linha(linha):
 
 def extrair_dados_matriz_geral(linha):
     """Extrai os dados para o Resumo retornando Sim/Não compatíveis com o front-end"""
-    coluna_filial = linha[0].strip() if len(linha) > 0 else ""
+    coluna_supervisor = linha[0].strip() if len(linha) > 0 else ""
     coluna_cidade = linha[1].strip() if len(linha) > 1 else ""
     status_bruto = linha[3].strip() if len(linha) > 3 else "-"
+    
+    coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "Não mapeada")
 
     tec_sabado = "Nenhum técnico escalado"
     tec_domingo = "Nenhum técnico escalado"
@@ -191,6 +182,7 @@ def extrair_dados_matriz_geral(linha):
 
     return {
         "filial": coluna_filial,
+        "supervisor": coluna_supervisor,
         "cidade": coluna_cidade,
         "tecnico_sabado": status_sabado,
         "tecnico_domingo": status_domingo,
@@ -320,16 +312,9 @@ def buscar():
 
         for linha in linhas:
             if len(linha) > 1:
-                f = linha[0].strip()
+                # O índice 0 agora é Supervisor, então ignoramos para "Filial" oficial.
+                # Em vez disso, alimentamos as filiais disponíveis diretamente do Dicionário!
                 c = linha[1].strip()
-                if f and f.upper() not in [
-                    "FILIAL",
-                    ":-:",
-                    "",
-                    "SEGUNDA-FEIRA",
-                    "TÉCNICO RESPONSÁVEL",
-                ]:
-                    filiais_disponiveis.append(f)
                 if c and c.upper() not in [
                     "CIDADE",
                     ":-:",
@@ -338,11 +323,13 @@ def buscar():
                     "TÉCNICO RESPONSÁVEL",
                 ]:
                     cidades_disponiveis.append(c)
+                    f = MAPA_FILIAIS.get(c, "")
+                    if f:
+                        filiais_disponiveis.append(f)
 
         filiais_disponiveis = list(set(filiais_disponiveis))
         cidades_disponiveis = list(set(cidades_disponiveis))
 
-        # Clique no Resumo (Matriz Geral): Retorna TODAS as cidades com Sim/Não para Sábado e Domingo
         if termo_lower == "todas_as_cidades":
             for linha in linhas:
                 if len(linha) > 1:
@@ -403,8 +390,8 @@ def buscar():
 
         for linha in linhas:
             if len(linha) > 1:
-                coluna_filial = linha[0].strip()
                 coluna_cidade = linha[1].strip()
+                coluna_filial = MAPA_FILIAIS.get(coluna_cidade, "")
 
                 if coluna_cidade.upper() in [
                     "CIDADE",
