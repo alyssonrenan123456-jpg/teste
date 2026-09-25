@@ -21,10 +21,7 @@ URL_AGENDAMENTOS = (
     "export?format=csv&gid=0"
 )
 
-URL_PLANTAO = (
-    "https://docs.google.com/spreadsheets/d/"
-    "13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/"
-    "export?format=csv&gid=1389576198"
+URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWh1vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 )
 
 # Cache simples para evitar várias chamadas seguidas ao Google Sheets.
