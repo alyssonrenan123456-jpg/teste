@@ -159,6 +159,36 @@ def extrair_dados_plantao_linha(linha):
     }
 
 
+def extrair_dados_matriz_geral(linha):
+    """Extrai os dados linha a linha garantindo que o resumo exiba os técnicos ou 'Nenhum técnico escalado' corretamente."""
+    cidade = encontrar_cidade_na_linha(linha)
+    if not cidade:
+        return None
+    filial = obter_filial_por_cidade(cidade)
+
+    tec_sabado = "Nenhum técnico escalado"
+    tec_domingo = "Nenhum técnico escalado"
+    tecnicos_encontrados = []
+
+    for valor in linha:
+        valor_str = str(valor).strip()
+        valor_upper = valor_str.upper()
+        if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
+            tecnicos_encontrados.append(valor_str)
+
+    if len(tecnicos_encontrados) >= 1:
+        tec_sabado = tecnicos_encontrados[0]
+    if len(tecnicos_encontrados) >= 2:
+        tec_domingo = tecnicos_encontrados[1]
+
+    return {
+        "filial": filial, 
+        "cidade": cidade,
+        "tecnico_sabado": tec_sabado,
+        "tecnico_domingo": tec_domingo,
+    }
+
+
 # ============================================================
 # ROTAS FLASK
 # ============================================================
@@ -253,6 +283,13 @@ def buscar():
                 if cidade in cidades_map:
                     resultados.append(cidades_map[cidade])
         else:
+            if termo_normalizado == "todas_as_cidades":
+                for linha in linhas:
+                    dados_linha = extrair_dados_matriz_geral(linha)
+                    if dados_linha:
+                        resultados.append(dados_linha)
+                return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+
             cidades_disponiveis = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
             filiais_disponiveis = list(set(MAPA_FILIAIS_ORIGINAL.values()))
             cidades_encontradas, filiais_encontradas = [], []
@@ -276,13 +313,6 @@ def buscar():
                 elif score_filial >= 75:
                     filiais_encontradas = [match_filial[0]]
 
-            if termo_normalizado == "todas_as_cidades":
-                for linha in linhas:
-                    dados_linha = extrair_dados_plantao_linha(linha)
-                    if dados_linha:
-                        resultados.append(dados_linha)
-                return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
-
             if not cidades_encontradas and not filiais_encontradas:
                 return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
 
@@ -295,11 +325,9 @@ def buscar():
                     continue
 
                 if cidades_encontradas:
-                    # Se pesquisou por cidade específica, mostra independentemente de ter técnico ou não
                     if cidade in cidades_encontradas:
                         resultados.append(dados_linha)
                 elif filiais_encontradas:
-                    # Se pesquisou por filial, mostra APENAS as cidades daquela filial que possuem técnico real (ativo)
                     if filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
                         resultados.append(dados_linha)
 
