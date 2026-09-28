@@ -25,7 +25,7 @@ def ler_csv_online(url):
 
 
 # ============================================================
-# SIGLAS E MAPAS DE FILIAIS
+# SIGLAS E MAPAS DE FILIAIS (COMPLETO)
 # ============================================================
 
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
@@ -48,7 +48,6 @@ MAPEAMENTO_SIGLAS_AGENDAMENTO = {
 }
 
 MAPA_FILIAIS_ORIGINAL = {
-   MAPA_FILIAIS_ORIGINAL = {
     "Brunópolis": "01 - MCA", "Campos Novos": "01 - MCA", "Curitibanos": "01 - MCA",
     "Fraiburgo": "01 - MCA", "Frei Rogério": "01 - MCA", "Iomerê": "01 - MCA",
     "Monte Carlo": "01 - MCA", "Pinheiro Preto": "01 - MCA", "Videira": "01 - MCA",
@@ -70,14 +69,13 @@ MAPA_FILIAIS_ORIGINAL = {
     "Erval Velho": "1002 - EVV", "Lacerdópolis": "1002 - EVV", "Rio dos Cedros": "1063 - RDC",
     "Balneário Piçarras": "11 - BVE", "Barra Velha": "11 - BVE", "Navegantes": "11 - BVE",
     "Penha": "11 - BVE", "São João do Itaperiú": "11 - BVE", "Garuva": "12 - ITP", "Itapoá": "12 - ITP",
-    # Abreviações e variações comuns encontradas nos registros de técnicos
+    # Abreviações e variações extras para evitar "Não mapeada"
     "VDA": "01 - MCA", "MCA": "01 - MCA", "FBG": "01 - MCA", "RSL": "02 - RSL", 
     "LGS": "03 - LGS", "BLU": "04 - BLU", "JBA": "06 - JBA", "ANT": "07 - ANT", 
     "CDR": "08 - CDR", "SCT": "09 - SCT", "JVE": "10 - JVE", "EVV": "1002 - EVV", 
     "RDC": "1063 - RDC", "BVE": "11 - BVE", "ITP": "12 - ITP", "BPI": "11 - BVE", 
     "BBS": "10 - JVE", "ARQ": "10 - JVE", "ASC": "04 - BLU", "IDL": "04 - BLU", 
     "HDO": "06 - JBA", "IBC": "06 - JBA", "PTB": "06 - JBA", "TAN": "06 - JBA"
-}
 }
 
 MAPA_FILIAIS = {k.strip().lower(): v for k, v in MAPA_FILIAIS_ORIGINAL.items()}
@@ -326,6 +324,7 @@ def buscar():
         return jsonify({"sucesso": False, "erro": str(e)}), 500
 
 
+# VARIÁVEIS EXIGIDAS PELA VERCEL (OBRIGATÓRIO)
 application = app
 
 if __name__ == "__main__":
