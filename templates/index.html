@@ -235,10 +235,14 @@
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Nome do Cliente</label>
                     <input type="text" id="msg-cliente" placeholder="Digite o nome do cliente" class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 uppercase" oninput="atualizarPreviaMensagem()">
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Horário</label>
+                    <input type="text" id="msg-horario" placeholder="Ex: 13:30 às 18:30" class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500" oninput="atualizarPreviaMensagem()">
+                </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Prévia da Mensagem</label>
-                    <textarea id="msg-previa" rows="5" readonly class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 text-xs font-mono leading-relaxed resize-none"></textarea>
+                    <textarea id="msg-previa" rows="6" readonly class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 text-xs font-mono leading-relaxed resize-none"></textarea>
                 </div>
                 
                 <div id="feedback-copia" class="hidden text-center text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 py-2 rounded-xl">
@@ -457,6 +461,7 @@
             document.getElementById('msg-tecnico').value = tecnico;
             document.getElementById('msg-assunto').value = '';
             document.getElementById('msg-cliente').value = '';
+            document.getElementById('msg-horario').value = '';
             document.getElementById('feedback-copia').classList.add('hidden');
             atualizarPreviaMensagem();
             document.getElementById('modal-mensagem').classList.remove('hidden');
@@ -469,11 +474,11 @@
         function atualizarPreviaMensagem() {
             const cidade = document.getElementById('msg-cidade').value || '[Cidade]';
             const tecnico = document.getElementById('msg-tecnico').value || '[Técnico]';
-            
             const assunto = document.getElementById('msg-assunto').value.trim().toUpperCase() || '[ASSUNTO]';
             const cliente = document.getElementById('msg-cliente').value.trim().toUpperCase() || '[NOME DO CLIENTE]';
+            const horario = document.getElementById('msg-horario').value.trim() || '[horario]';
 
-            const textoFinal = `AGENDAMENTO - ${assunto}\n\nCidade: ${cidade}\nCliente: ${cliente}\nTécnico: ${tecnico}`;
+            const textoFinal = `AGENDAMENTO - ${assunto}\n\nCidade: ${cidade}\nCliente: ${cliente}\nHorario: ${horario}\nTécnico: ${tecnico}`;
             document.getElementById('msg-previa').value = textoFinal;
         }
 
@@ -496,7 +501,7 @@
             const conteudo = document.getElementById('modal-conteudo');
             
             modal.classList.remove('hidden');
-            conteudo.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando matriz geral...</div>';
+            conteudo.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando matriz...</div>';
 
             try {
                 const response = await fetch('/api/buscar', {
@@ -506,41 +511,40 @@
                 });
 
                 const data = await response.json();
-
-                if (!data.sucesso || !data.dados || data.dados.length === 0) {
-                    conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro ao carregar a matriz de plantão.</div>';
+                if (!data.sucesso || data.dados.length === 0) {
+                    conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro ao carregar resumo da matriz.</div>';
                     return;
                 }
 
                 let html = `
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs text-slate-300">
-                            <thead class="bg-slate-950/80 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                                <tr>
-                                    <th class="py-3 px-4">Filial</th>
-                                    <th class="py-3 px-4">Cidade</th>
-                                    <th class="py-3 px-4 text-center">Sábado</th>
-                                    <th class="py-3 px-4 text-center">Domingo</th>
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 bg-slate-950/40">
+                                    <th class="p-3 font-semibold uppercase tracking-wider">Filial</th>
+                                    <th class="p-3 font-semibold uppercase tracking-wider">Cidade</th>
+                                    <th class="p-3 font-semibold uppercase tracking-wider text-center">Sábado</th>
+                                    <th class="p-3 font-semibold uppercase tracking-wider text-center">Domingo</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/60">
                 `;
 
                 data.dados.forEach(item => {
-                    const simSab = item.tecnico_sabado.toLowerCase() === 'sim';
-                    const simDom = item.tecnico_domingo.toLowerCase() === 'sim';
+                    const sabSim = item.tecnico_sabado.toUpperCase() === 'SIM';
+                    const domSim = item.tecnico_domingo.toUpperCase() === 'SIM';
 
                     html += `
                         <tr class="hover:bg-slate-900/40 transition-colors">
-                            <td class="py-2.5 px-4 font-medium text-white">${item.filial}</td>
-                            <td class="py-2.5 px-4 text-indigo-300">${item.cidade}</td>
-                            <td class="py-2.5 px-4 text-center">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${simSab ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
+                            <td class="p-3 font-medium text-slate-300">${item.filial}</td>
+                            <td class="p-3 font-medium text-indigo-300">${item.cidade}</td>
+                            <td class="p-3 text-center">
+                                <span class="px-2.5 py-1 rounded-lg font-semibold text-[11px] ${sabSim ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
                                     ${item.tecnico_sabado}
                                 </span>
                             </td>
-                            <td class="py-2.5 px-4 text-center">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${simDom ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
+                            <td class="p-3 text-center">
+                                <span class="px-2.5 py-1 rounded-lg font-semibold text-[11px] ${domSim ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800/60 text-slate-400'}">
                                     ${item.tecnico_domingo}
                                 </span>
                             </td>
@@ -548,15 +552,10 @@
                     `;
                 });
 
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
+                html += `</tbody></table></div>`;
                 conteudo.innerHTML = html;
             } catch (err) {
-                conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro de comunicação ao carregar o resumo.</div>';
+                conteudo.innerHTML = '<div class="text-center py-10 text-rose-400 text-sm">Erro de comunicação ao carregar matriz.</div>';
             }
         }
 
