@@ -14,7 +14,7 @@ URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsE
 
 
 def ler_csv_online(url):
-    """Lê o CSV diretamente usando pandas, ideal e seguro para la Vercel."""
+    """Lê o CSV diretamente usando pandas, ideal e seguro para a Vercel."""
     try:
         df = pd.read_csv(url, dtype=str)
         df = df.fillna("")  # Substitui valores vazios por string vazia
@@ -25,7 +25,19 @@ def ler_csv_online(url):
 
 
 # ============================================================
-# SIGLAS E MAPAS DE FILIAIS (COMPLETO E CORRIGIDO)
+# FUNÇÃO DE NORMALIZAÇÃO (Remove acentos, espaços e converte para minúsculas)
+# ============================================================
+
+def normalizar_texto(texto):
+    if texto is None:
+        return ""
+    texto = str(texto).strip().lower()
+    tabela = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
+    return " ".join(texto.translate(tabela).split())
+
+
+# ============================================================
+# SIGLAS E MAPAS DE FILIAIS (COM NORMALIZAÇÃO AUTOMÁTICA)
 # ============================================================
 
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
@@ -70,14 +82,12 @@ MAPA_FILIAIS_ORIGINAL = {
     "Balneário Piçarras": "11 - BVE", "Barra Velha": "11 - BVE", "Navegantes": "11 - BVE",
     "Penha": "11 - BVE", "São João do Itaperiú": "11 - BVE", "Garuva": "12 - ITP", "Itapoá": "12 - ITP",
     
-    # Inclusão explícita dos Códigos de Filial para garantir que a busca por filial funcione perfeitamente
+    # Códigos de Filial e Siglas
     "01 - MCA": "01 - MCA", "02 - RSL": "02 - RSL", "03 - LGS": "03 - LGS",
     "04 - BLU": "04 - BLU", "06 - JBA": "06 - JBA", "07 - ANT": "07 - ANT",
     "08 - CDR": "08 - CDR", "09 - SCT": "09 - SCT", "10 - JVE": "10 - JVE",
     "1002 - EVV": "1002 - EVV", "1063 - RDC": "1063 - RDC", "11 - BVE": "11 - BVE",
     "12 - ITP": "12 - ITP",
-
-    # Siglas e variações para evitar "Não mapeada"
     "VDA": "01 - MCA", "MCA": "01 - MCA", "FBG": "01 - MCA", "RSL": "02 - RSL", 
     "LGS": "03 - LGS", "BLU": "04 - BLU", "JBA": "06 - JBA", "ANT": "07 - ANT", 
     "CDR": "08 - CDR", "SCT": "09 - SCT", "JVE": "10 - JVE", "EVV": "1002 - EVV", 
@@ -86,20 +96,13 @@ MAPA_FILIAIS_ORIGINAL = {
     "HDO": "06 - JBA", "IBC": "06 - JBA", "PTB": "06 - JBA", "TAN": "06 - JBA"
 }
 
-MAPA_FILIAIS = {k.strip().lower(): v for k, v in MAPA_FILIAIS_ORIGINAL.items()}
+# Aqui está o truque: normalizamos cada chave do dicionário automaticamente na criação
+MAPA_FILIAIS = {normalizar_texto(k): v for k, v in MAPA_FILIAIS_ORIGINAL.items()}
 
 
 # ============================================================
 # FUNÇÕES DE AUXÍLIO
 # ============================================================
-
-def normalizar_texto(texto):
-    if texto is None:
-        return ""
-    texto = str(texto).strip().lower()
-    tabela = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
-    return " ".join(texto.translate(tabela).split())
-
 
 def obter_filial_por_cidade(cidade):
     if not cidade:
