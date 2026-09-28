@@ -10,8 +10,6 @@ app = Flask(__name__)
 # URLs DE EXPORTAÇÃO CSV (Google Sheets)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
-
-# URL do Plantão apontando exatamente para a aba correta usando o GID da planilha nova
 URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
 
 
@@ -106,21 +104,10 @@ def encontrar_cidade_na_linha(linha):
     return ""
 
 
-def encontrar_status_na_linha(linha):
-    for valor in linha:
-        valor_normalizado = normalizar_texto(valor)
-        if valor_normalizado == "sim":
-            return "SIM"
-        if valor_normalizado in ("nao", "não"):
-            return "NÃO"
-    return "-"
-
-
 def extrair_dados_plantao_linha(linha):
     supervisor = str(linha[0]).strip() if len(linha) > 0 else ""
     cidade = encontrar_cidade_na_linha(linha)
     filial = obter_filial_por_cidade(cidade)
-    status_bruto = encontrar_status_na_linha(linha)
 
     tec_sabado, jornada_sabado = "Nenhum técnico escalado", "-"
     tec_domingo, jornada_domingo = "Nenhum técnico escalado", "-"
@@ -144,7 +131,8 @@ def extrair_dados_plantao_linha(linha):
 
     tem_tec_sabado = tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_sabado != ""
     tem_tec_domingo = tec_domingo not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_domingo != ""
-    tem_sobreaviso_real = status_bruto == "SIM" and (tem_tec_sabado or tem_tec_domingo)
+    
+    tem_sobreaviso_real = tem_tec_sabado or tem_tec_domingo
 
     return {
         "filial": filial, "supervisor": supervisor, "cidade": cidade,
@@ -160,7 +148,6 @@ def extrair_dados_matriz_geral(linha):
     if not cidade:
         return None
     filial = obter_filial_por_cidade(cidade)
-    status = encontrar_status_na_linha(linha)
 
     tecnicos_encontrados = []
     for valor in linha:
@@ -173,8 +160,8 @@ def extrair_dados_matriz_geral(linha):
 
     return {
         "filial": filial, "cidade": cidade,
-        "tecnico_sabado": "Sim" if status == "SIM" and tem_sabado else "Não",
-        "tecnico_domingo": "Sim" if status == "SIM" and tem_domingo else "Não",
+        "tecnico_sabado": "Sim" if tem_sabado else "Não",
+        "tecnico_domingo": "Sim" if tem_domingo else "Não",
     }
 
 
@@ -189,7 +176,6 @@ def index():
 
 @app.route("/api/status-sheets", methods=["GET"])
 def status_sheets():
-    """Rota para verificar o status de conexão com as planilhas."""
     res_agendamentos = ler_csv_online(URL_AGENDAMENTOS)
     res_plantao = ler_csv_online(URL_PLANTAO)
     return jsonify({
