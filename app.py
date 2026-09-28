@@ -25,7 +25,7 @@ def ler_csv_online(url):
 
 
 # ============================================================
-# FUNÇÃO DE NORMALIZAÇÃO (Remove acentos, espaços e converte para minúsculas)
+# FUNÇÃO DE NORMALIZAÇÃO
 # ============================================================
 
 def normalizar_texto(texto):
@@ -37,7 +37,7 @@ def normalizar_texto(texto):
 
 
 # ============================================================
-# SIGLAS E MAPAS DE FILIAIS (COM NORMALIZAÇÃO AUTOMÁTICA)
+# SIGLAS E MAPAS DE FILIAIS
 # ============================================================
 
 MAPEAMENTO_SIGLAS_AGENDAMENTO = {
@@ -82,7 +82,6 @@ MAPA_FILIAIS_ORIGINAL = {
     "Balneário Piçarras": "11 - BVE", "Barra Velha": "11 - BVE", "Navegantes": "11 - BVE",
     "Penha": "11 - BVE", "São João do Itaperiú": "11 - BVE", "Garuva": "12 - ITP", "Itapoá": "12 - ITP",
     
-    # Códigos de Filial e Siglas
     "01 - MCA": "01 - MCA", "02 - RSL": "02 - RSL", "03 - LGS": "03 - LGS",
     "04 - BLU": "04 - BLU", "06 - JBA": "06 - JBA", "07 - ANT": "07 - ANT",
     "08 - CDR": "08 - CDR", "09 - SCT": "09 - SCT", "10 - JVE": "10 - JVE",
@@ -96,7 +95,6 @@ MAPA_FILIAIS_ORIGINAL = {
     "HDO": "06 - JBA", "IBC": "06 - JBA", "PTB": "06 - JBA", "TAN": "06 - JBA"
 }
 
-# Aqui está o truque: normalizamos cada chave do dicionário automaticamente na criação
 MAPA_FILIAIS = {normalizar_texto(k): v for k, v in MAPA_FILIAIS_ORIGINAL.items()}
 
 
@@ -111,7 +109,7 @@ def obter_filial_por_cidade(cidade):
 
 
 def encontrar_cidade_na_linha(linha):
-    cidades = list(MAPA_FILIAIS_ORIGINAL.keys())
+    cidades = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
     for valor in linha:
         valor_normalizado = normalizar_texto(valor)
         if not valor_normalizado:
@@ -158,28 +156,6 @@ def extrair_dados_plantao_linha(linha):
         "tecnico_sabado": tec_sabado, "jornada_sabado": jornada_sabado,
         "tecnico_domingo": tec_domingo, "jornada_domingo": jornada_domingo,
         "tem_tecnico_real": tem_sobreaviso_real,
-    }
-
-
-def extrair_dados_matriz_geral(linha):
-    cidade = encontrar_cidade_na_linha(linha)
-    if not cidade:
-        return None
-    filial = obter_filial_por_cidade(cidade)
-
-    tecnicos_encontrados = []
-    for valor in linha:
-        valor_upper = str(valor).strip().upper()
-        if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
-            tecnicos_encontrados.append(str(valor).strip())
-
-    tem_sabado = len(tecnicos_encontrados) >= 1
-    tem_domingo = len(tecnicos_encontrados) >= 2
-
-    return {
-        "filial": filial, "cidade": cidade,
-        "tecnico_sabado": "Sim" if tem_sabado else "Não",
-        "tecnico_domingo": "Sim" if tem_domingo else "Não",
     }
 
 
@@ -277,7 +253,7 @@ def buscar():
                 if cidade in cidades_map:
                     resultados.append(cidades_map[cidade])
         else:
-            cidades_disponiveis = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k]
+            cidades_disponiveis = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
             filiais_disponiveis = list(set(MAPA_FILIAIS_ORIGINAL.values()))
             cidades_encontradas, filiais_encontradas = [], []
 
@@ -295,14 +271,14 @@ def buscar():
                 score_cidade = match_cidade[1] if match_cidade else 0
                 score_filial = match_filial[1] if match_filial else 0
 
-                if score_cidade >= 60 and score_cidade >= score_filial:
+                if score_cidade >= 75 and score_cidade >= score_filial:
                     cidades_encontradas = [match_cidade[0]]
-                elif score_filial >= 60:
+                elif score_filial >= 75:
                     filiais_encontradas = [match_filial[0]]
 
             if termo_normalizado == "todas_as_cidades":
                 for linha in linhas:
-                    dados_linha = extrair_dados_matriz_geral(linha)
+                    dados_linha = extrair_dados_plantao_linha(linha)
                     if dados_linha:
                         resultados.append(dados_linha)
                 return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
@@ -319,9 +295,11 @@ def buscar():
                     continue
 
                 if cidades_encontradas:
+                    # Se pesquisou por cidade específica, mostra independentemente de ter técnico ou não
                     if cidade in cidades_encontradas:
                         resultados.append(dados_linha)
                 elif filiais_encontradas:
+                    # Se pesquisou por filial, mostra APENAS as cidades daquela filial que possuem técnico real (ativo)
                     if filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
                         resultados.append(dados_linha)
 
