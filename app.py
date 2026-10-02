@@ -11,7 +11,7 @@ app = Flask(__name__)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
 
-# Novas URLs baseadas nos GIDs das abas de Sábado e Domingo do Gustavo
+# URLs baseadas nos GIDs das abas de Sábado e Domingo
 URL_PLANTAO_SABADO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1364670416"
 URL_PLANTAO_DOMINGO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=935861385"
 
@@ -112,23 +112,17 @@ def obter_filial_por_cidade(cidade):
 
 
 def processar_dados_plantao():
-    """Lê as abas de Sábado e Domingo e cruza os dados por cidade."""
     linhas_sabado = ler_csv_online(URL_PLANTAO_SABADO)
     linhas_domingo = ler_csv_online(URL_PLANTAO_DOMINGO)
 
     dados_consolidados = {}
 
-    # Função auxiliar para popular o dicionário com base nas linhas de uma aba
     def parsear_linhas(linhas):
         if not linhas or len(linhas) < 2:
             return {}
         
         cabecalho = [str(c).strip().upper() for c in linhas[0]]
-        
-        # Identifica os índices das colunas com base nos novos nomes da planilha
-        idx_cidade = -1
-        idx_tec = -1
-        idx_jornada = -1
+        idx_cidade, idx_tec, idx_jornada = -1, -1, -1
 
         for i, col in enumerate(cabecalho):
             if "CIDADE" in col:
@@ -138,7 +132,6 @@ def processar_dados_plantao():
             elif "JORNADA" in col:
                 idx_jornada = i
 
-        # Fallback padrão caso os títulos exatos mudem levemente
         if idx_cidade == -1: idx_cidade = 2
         if idx_tec == -1: idx_tec = 3
         if idx_jornada == -1: idx_jornada = 4
@@ -167,30 +160,21 @@ def processar_dados_plantao():
     sabado_dict = parsear_linhas(linhas_sabado)
     domingo_dict = parsear_linhas(linhas_domingo)
 
-    # Unifica todas as cidades conhecidas do mapa de filiais
     todas_cidades = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
 
     for cidade in todas_cidades:
         filial = obter_filial_por_cidade(cidade)
         
-        # Dados de sábado
         info_sab = sabado_dict.get(cidade, {"tecnico": "Nenhum técnico escalado", "jornada": "-"})
-        tec_sab = info_sab["tecnico"]
-        jor_sab = info_sab["jornada"]
+        tec_sab, jor_sab = info_sab["tecnico"], info_sab["jornada"]
 
-        # Dados de domingo
         info_dom = domingo_dict.get(cidade, {"tecnico": "Nenhum técnico escalado", "jornada": "-"})
-        tec_dom = info_dom["tecnico"]
-        jor_dom = info_dom["jornada"]
+        tec_dom, jor_dom = info_dom["tecnico"], info_dom["jornada"]
 
         tem_sab = tec_sab not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_sab != ""
         tem_dom = tec_dom not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_dom != ""
         
-        tem_sobreaviso_real = tem_sab or tec_dom # corrigido para checar ambos
-
-        # Formato Sim/Não para a matriz
-        sim_nao_sab = "Sim" if tem_sab else "Não"
-        sim_nao_dom = "Sim" if tem_dom else "Não"
+        tem_sobreaviso_real = tem_sab or tem_dom
 
         dados_consolidados[cidade] = {
             "filial": filial,
@@ -201,8 +185,8 @@ def processar_dados_plantao():
             "tecnico_domingo": tec_dom,
             "jornada_domingo": jor_dom,
             "tem_tecnico_real": tem_sobreaviso_real,
-            "resumo_sabado": sim_nao_sab,
-            "resumo_domingo": sim_nao_dom
+            "resumo_sabado": "Sim" if tem_sab else "Não",
+            "resumo_domingo": "Sim" if tem_dom else "Não"
         }
 
     return dados_consolidados
@@ -241,12 +225,14 @@ def buscar():
         if not termo:
             return jsonify({"sucesso": False, "erro": "Informe um termo para consultar."}), 400
 
+        # Declarada globalmente aqui para evitar o erro de variável não associada
+        termo_normalizado = normalizar_texto(termo)
+
         if tipo == "agendamento":
             linhas = ler_csv_online(URL_AGENDAMENTOS)
             if not linhas:
                 return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets de Agendamentos."}), 500
 
-            termo_normalizado = normalizar_texto(termo)
             tabela_mapa = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
             cidades_map = {}
 
@@ -300,12 +286,10 @@ def buscar():
             return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
         else:
-            # Busca Plantão / Sobreaviso nas abas separadas por dia
             dados_plantao = processar_dados_plantao()
 
             if termo_normalizado == "todas_as_cidades":
                 resultados = list(dados_plantao.values())
-                # Formata para o resumo geral da matriz
                 resultados_formatados = [{
                     "filial": item["filial"],
                     "cidade": item["cidade"],
