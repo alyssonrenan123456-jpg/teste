@@ -10,7 +10,10 @@ app = Flask(__name__)
 # URLs DE EXPORTAÇÃO CSV (Google Sheets)
 # ============================================================
 URL_AGENDAMENTOS = "https://docs.google.com/spreadsheets/d/1ROT8e_gaTmVDr1v-qZngmtTQYeU56uQFVfu65fu0LWs/export?format=csv&gid=0"
-URL_PLANTAO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1389576198"
+
+# Novas URLs baseadas nos GIDs das abas de Sábado e Domingo do Gustavo
+URL_PLANTAO_SABADO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=1364670416"
+URL_PLANTAO_DOMINGO = "https://docs.google.com/spreadsheets/d/13Ywxw4AWhx11vzwMWNelPULsEIU32yFoKbLaXmG6BwU/export?format=csv&gid=935861385"
 
 
 def ler_csv_online(url):
@@ -108,92 +111,101 @@ def obter_filial_por_cidade(cidade):
     return MAPA_FILIAIS.get(normalizar_texto(cidade), "Não mapeada")
 
 
-def encontrar_cidade_na_linha(linha):
-    cidades = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
-    for valor in linha:
-        valor_normalizado = normalizar_texto(valor)
-        if not valor_normalizado:
-            continue
-        for cidade in cidades:
-            if valor_normalizado == normalizar_texto(cidade):
-                return cidade
-    return ""
+def processar_dados_plantao():
+    """Lê as abas de Sábado e Domingo e cruza os dados por cidade."""
+    linhas_sabado = ler_csv_online(URL_PLANTAO_SABADO)
+    linhas_domingo = ler_csv_online(URL_PLANTAO_DOMINGO)
 
+    dados_consolidados = {}
 
-def extrair_dados_plantao_linha(linha):
-    supervisor = str(linha[0]).strip() if len(linha) > 0 else ""
-    cidade = encontrar_cidade_na_linha(linha)
-    filial = obter_filial_por_cidade(cidade)
+    # Função auxiliar para popular o dicionário com base nas linhas de uma aba
+    def parsear_linhas(linhas):
+        if not linhas or len(linhas) < 2:
+            return {}
+        
+        cabecalho = [str(c).strip().upper() for c in linhas[0]]
+        
+        # Identifica os índices das colunas com base nos novos nomes da planilha
+        idx_cidade = -1
+        idx_tec = -1
+        idx_jornada = -1
 
-    tec_sabado, jornada_sabado = "Nenhum técnico escalado", "-"
-    tec_domingo, jornada_domingo = "Nenhum técnico escalado", "-"
-    tecnicos_encontrados = []
+        for i, col in enumerate(cabecalho):
+            if "CIDADE" in col:
+                idx_cidade = i
+            elif "TÉCNICO" in col or "TECNICO" in col:
+                idx_tec = i
+            elif "JORNADA" in col:
+                idx_jornada = i
 
-    for i, valor in enumerate(linha):
-        valor = str(valor).strip()
-        valor_upper = valor.upper()
-        if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
-            jornada = "-"
-            if i + 1 < len(linha):
-                proximo = str(linha[i + 1]).strip()
-                if ":" in proximo or "H" in proximo.upper() or "AS" in proximo.upper() or "-" in proximo:
-                    jornada = proximo
-            tecnicos_encontrados.append((valor, jornada))
+        # Fallback padrão caso os títulos exatos mudem levemente
+        if idx_cidade == -1: idx_cidade = 2
+        if idx_tec == -1: idx_tec = 3
+        if idx_jornada == -1: idx_jornada = 4
 
-    if len(tecnicos_encontrados) >= 1:
-        tec_sabado, jornada_sabado = tecnicos_encontrados[0]
-    if len(tecnicos_encontrados) >= 2:
-        tec_domingo, jornada_domingo = tecnicos_encontrados[1]
+        mapa_aba = {}
+        for linha in linhas[1:]:
+            if len(linha) <= max(idx_cidade, idx_tec):
+                continue
+            
+            cidade = str(linha[idx_cidade]).strip()
+            if not cidade or cidade.upper() == "NAN":
+                continue
+                
+            tecnico = str(linha[idx_tec]).strip() if len(linha) > idx_tec else "Nenhum técnico escalado"
+            jornada = str(linha[idx_jornada]).strip() if len(linha) > idx_jornada else "-"
+            
+            if not tecnico or tecnico.upper() == "NAN":
+                tecnico = "Nenhum técnico escalado"
+            if not jornada or jornada.upper() == "NAN":
+                jornada = "-"
 
-    tem_tec_sabado = tec_sabado not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_sabado != ""
-    tem_tec_domingo = tec_domingo not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_domingo != ""
-    
-    tem_sobreaviso_real = tem_tec_sabado or tem_tec_domingo
+            mapa_aba[cidade] = {"tecnico": tecnico, "jornada": jornada}
+            
+        return mapa_aba
 
-    return {
-        "filial": filial, "supervisor": supervisor, "cidade": cidade,
-        "status": "SIM" if tem_sobreaviso_real else "NÃO",
-        "tecnico_sabado": tec_sabado, "jornada_sabado": jornada_sabado,
-        "tecnico_domingo": tec_domingo, "jornada_domingo": jornada_domingo,
-        "tem_tecnico_real": tem_sobreaviso_real,
-    }
+    sabado_dict = parsear_linhas(linhas_sabado)
+    domingo_dict = parsear_linhas(linhas_domingo)
 
+    # Unifica todas as cidades conhecidas do mapa de filiais
+    todas_cidades = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
 
-def extrair_dados_matriz_geral(linha):
-    """Extrai os dados para a Matriz Geral exibindo 'Sim' ou 'Não' para sábado e domingo."""
-    cidade = encontrar_cidade_na_linha(linha)
-    if not cidade:
-        return None
-    filial = obter_filial_por_cidade(cidade)
+    for cidade in todas_cidades:
+        filial = obter_filial_por_cidade(cidade)
+        
+        # Dados de sábado
+        info_sab = sabado_dict.get(cidade, {"tecnico": "Nenhum técnico escalado", "jornada": "-"})
+        tec_sab = info_sab["tecnico"]
+        jor_sab = info_sab["jornada"]
 
-    tecnicos_encontrados = []
-    for i, valor in enumerate(linha):
-        valor_str = str(valor).strip()
-        valor_upper = valor_str.upper()
-        if "PRÓPRIOS" in valor_upper or "TERCEIRIZADOS" in valor_upper:
-            tecnicos_encontrados.append((i, valor_str))
+        # Dados de domingo
+        info_dom = domingo_dict.get(cidade, {"tecnico": "Nenhum técnico escalado", "jornada": "-"})
+        tec_dom = info_dom["tecnico"]
+        jor_dom = info_dom["jornada"]
 
-    tec_sabado = "Não"
-    tec_domingo = "Não"
+        tem_sab = tec_sab not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_sab != ""
+        tem_dom = tec_dom not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and tec_dom != ""
+        
+        tem_sobreaviso_real = tem_sab or tec_dom # corrigido para checar ambos
 
-    if len(tecnicos_encontrados) >= 1:
-        # Valida se o técnico de sábado realmente existe e não é vazio/opção inválida
-        t_val = tecnicos_encontrados[0][1]
-        if t_val not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and t_val != "":
-            tec_sabado = "Sim"
+        # Formato Sim/Não para a matriz
+        sim_nao_sab = "Sim" if tem_sab else "Não"
+        sim_nao_dom = "Sim" if tem_dom else "Não"
 
-    if len(tecnicos_encontrados) >= 2:
-        # Valida se o técnico de domingo realmente existe e não é vazio/opção inválida
-        t_val = tecnicos_encontrados[1][1]
-        if t_val not in ["Nenhum técnico escalado", "NENHUMA OPÇÃO", "-"] and t_val != "":
-            tec_domingo = "Sim"
+        dados_consolidados[cidade] = {
+            "filial": filial,
+            "cidade": cidade,
+            "status": "SIM" if tem_sobreaviso_real else "NÃO",
+            "tecnico_sabado": tec_sab,
+            "jornada_sabado": jor_sab,
+            "tecnico_domingo": tec_dom,
+            "jornada_domingo": jor_dom,
+            "tem_tecnico_real": tem_sobreaviso_real,
+            "resumo_sabado": sim_nao_sab,
+            "resumo_domingo": sim_nao_dom
+        }
 
-    return {
-        "filial": filial, 
-        "cidade": cidade,
-        "tecnico_sabado": tec_sabado,
-        "tecnico_domingo": tec_domingo,
-    }
+    return dados_consolidados
 
 
 # ============================================================
@@ -208,12 +220,13 @@ def index():
 @app.route("/api/status-sheets", methods=["GET"])
 def status_sheets():
     res_agendamentos = ler_csv_online(URL_AGENDAMENTOS)
-    res_plantao = ler_csv_online(URL_PLANTAO)
+    res_sabado = ler_csv_online(URL_PLANTAO_SABADO)
+    res_domingo = ler_csv_online(URL_PLANTAO_DOMINGO)
     return jsonify({
         "sucesso": True,
         "google_sheets": {
             "agendamentos": res_agendamentos is not None,
-            "plantao": res_plantao is not None
+            "plantao": (res_sabado is not None and res_domingo is not None)
         }
     })
 
@@ -228,18 +241,15 @@ def buscar():
         if not termo:
             return jsonify({"sucesso": False, "erro": "Informe um termo para consultar."}), 400
 
-        url = URL_AGENDAMENTOS if tipo == "agendamento" else URL_PLANTAO
-        linhas = ler_csv_online(url)
-
-        if not linhas:
-            return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets na Vercel."}), 500
-
-        termo_normalizado = normalizar_texto(termo)
-        tabela_mapa = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
-        resultados = []
-
         if tipo == "agendamento":
+            linhas = ler_csv_online(URL_AGENDAMENTOS)
+            if not linhas:
+                return jsonify({"sucesso": False, "erro": "Não foi possível conectar ao Google Sheets de Agendamentos."}), 500
+
+            termo_normalizado = normalizar_texto(termo)
+            tabela_mapa = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
             cidades_map = {}
+
             for linha in linhas:
                 for idx, col_val in enumerate(linha):
                     nome_col = str(col_val).strip()
@@ -286,18 +296,25 @@ def buscar():
             if not cidades_encontradas:
                 return jsonify({"sucesso": True, "total": 0, "mensagem": "Cidade ou sigla não encontrada no Agendamento", "dados": []})
 
-            for cidade in cidades_encontradas:
-                if cidade in cidades_map:
-                    resultados.append(cidades_map[cidade])
-        else:
-            if termo_normalizado == "todas_as_cidades":
-                for linha in linhas:
-                    dados_linha = extrair_dados_matriz_geral(linha)
-                    if dados_linha:
-                        resultados.append(dados_linha)
-                return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+            resultados = [cidades_map[cidade] for cidade in cidades_encontradas if cidade in cidades_map]
+            return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
-            cidades_disponiveis = [k for k in MAPA_FILIAIS_ORIGINAL.keys() if " - " not in k and len(k) > 3]
+        else:
+            # Busca Plantão / Sobreaviso nas abas separadas por dia
+            dados_plantao = processar_dados_plantao()
+
+            if termo_normalizado == "todas_as_cidades":
+                resultados = list(dados_plantao.values())
+                # Formata para o resumo geral da matriz
+                resultados_formatados = [{
+                    "filial": item["filial"],
+                    "cidade": item["cidade"],
+                    "tecnico_sabado": item["resumo_sabado"],
+                    "tecnico_domingo": item["resumo_domingo"]
+                } for item in resultados]
+                return jsonify({"sucesso": True, "total": len(resultados_formatados), "dados": resultados_formatados})
+
+            cidades_disponiveis = list(dados_plantao.keys())
             filiais_disponiveis = list(set(MAPA_FILIAIS_ORIGINAL.values()))
             cidades_encontradas, filiais_encontradas = [], []
 
@@ -323,25 +340,17 @@ def buscar():
             if not cidades_encontradas and not filiais_encontradas:
                 return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
 
-            for linha in linhas:
-                dados_linha = extrair_dados_plantao_linha(linha)
-                cidade = dados_linha["cidade"]
-                filial = dados_linha["filial"]
-
-                if not cidade:
-                    continue
-
-                if cidades_encontradas:
-                    if cidade in cidades_encontradas:
-                        resultados.append(dados_linha)
-                elif filiais_encontradas:
-                    if filial in filiais_encontradas and dados_linha["tem_tecnico_real"]:
-                        resultados.append(dados_linha)
+            resultados = []
+            for cidade, info in dados_plantao.items():
+                if cidades_encontradas and cidade in cidades_encontradas:
+                    resultados.append(info)
+                elif filiais_encontradas and info["filial"] in filiais_encontradas and info["tem_tecnico_real"]:
+                    resultados.append(info)
 
             if len(resultados) == 0:
                 return jsonify({"sucesso": True, "total": 0, "mensagem": "Essa cidade não possui sobreaviso no momento", "dados": []})
 
-        return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
+            return jsonify({"sucesso": True, "total": len(resultados), "dados": resultados})
 
     except Exception as e:
         traceback.print_exc()
